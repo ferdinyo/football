@@ -2,8 +2,41 @@ from flask import Flask, request, jsonify
 import random
 import math
 import traceback
+import json
+from datetime import datetime, date
+import os
+from collections import defaultdict
 
 app = Flask(__name__)
+
+# Simple file-based storage for persistence
+DATA_FILE = 'football_data.json'
+
+def load_data():
+    """Load existing data from file"""
+    try:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Error loading data: {e}")
+    
+    # Return default structure if no file exists
+    return {
+        'players': {},
+        'games': [],
+        'current_players': []
+    }
+
+def save_data(data):
+    """Save data to file"""
+    try:
+        with open(DATA_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving data: {e}")
+        return False
 
 class Player:
     def __init__(self, name, position, skill_level=5):
@@ -16,12 +49,12 @@ class Player:
 
 class TeamBalancer:
     POSITION_WEIGHTS = {
-        'goalkeeper': 3.0,      # Highest importance - every team needs one
-        'defender': 1.4,        # Important for defense
-        'left_wing': 1.3,       # Wing players create width
-        'right_wing': 1.3,      # Wing players create width  
-        'midfielder': 1.6,      # Highest field weight - control the game
-        'forward': 1.5          # Important for scoring
+        'goalkeeper': 3.0,
+        'defender': 1.4,
+        'left_wing': 1.3,
+        'right_wing': 1.3,
+        'midfielder': 1.6,
+        'forward': 1.5
     }
     
     @staticmethod
@@ -76,7 +109,6 @@ class TeamBalancer:
             shuffled = players.copy()
             random.shuffle(shuffled)
             
-            # Try different split points for better balance
             split_point = len(shuffled) // 2
             team_a = shuffled[:split_point]
             team_b = shuffled[split_point:]
@@ -100,7 +132,7 @@ def home():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Football Team Splitter</title>
+    <title>Football Team Manager</title>
     <style>
         * {
             margin: 0;
@@ -117,7 +149,7 @@ def home():
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
         
@@ -136,6 +168,40 @@ def home():
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
         
+        .tab-container {
+            margin-bottom: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
         .app-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -143,18 +209,22 @@ def home():
             margin-bottom: 30px;
         }
         
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
             .app-container {
                 grid-template-columns: 1fr;
             }
         }
         
-        .input-section, .teams-section {
+        .input-section, .teams-section, .stats-section {
             background: rgba(255, 255, 255, 0.1);
             padding: 25px;
             border-radius: 15px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stats-section {
+            grid-column: 1 / -1;
         }
         
         h2 {
@@ -177,7 +247,7 @@ def home():
             align-items: center;
         }
         
-        input, select {
+        input, select, textarea {
             padding: 12px;
             border: none;
             border-radius: 8px;
@@ -229,6 +299,10 @@ def home():
         
         .secondary-btn {
             background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        
+        .warning-btn {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
         }
         
         .teams-display {
@@ -321,6 +395,113 @@ def home():
         .balanced { color: #4CAF50; }
         .unbalanced { color: #ff4444; }
         
+        .score-input {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 15px;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .score-team {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .vs {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .player-stats {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .stats-table th, .stats-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stats-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .stats-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .win-rate {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .win-rate.high { background: rgba(76, 175, 80, 0.3); }
+        .win-rate.medium { background: rgba(255, 193, 7, 0.3); }
+        .win-rate.low { background: rgba(244, 67, 54, 0.3); }
+        
+        .game-history {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .game-item {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .game-item.lost {
+            border-left-color: #f44336;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .game-score {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .game-date {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+        
         .instructions {
             background: rgba(0, 0, 0, 0.3);
             padding: 25px;
@@ -354,90 +535,235 @@ def home():
             justify-content: space-between;
             margin: 5px 0;
         }
+        
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>⚽ Advanced Team Splitter</h1>
-            <p>Create balanced football teams based on player positions and skill levels</p>
+            <h1>⚽ Football Team Manager</h1>
+            <p>Team splitting, game tracking, and player performance analytics</p>
         </header>
         
-        <div class="app-container">
-            <div class="input-section">
-                <h2>🏃 Add Players</h2>
-                <div class="player-form" id="playerForm">
-                    <div class="form-row">
-                        <strong>Player Name</strong>
-                        <strong>Position</strong>
-                        <strong>Skill (1-10)</strong>
-                        <span></span>
+        <div class="tab-container">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('team-splitter')">Team Splitter</div>
+                <div class="tab" onclick="switchTab('game-tracker')">Game Tracker</div>
+                <div class="tab" onclick="switchTab('player-stats')">Player Statistics</div>
+                <div class="tab" onclick="switchTab('game-history')">Game History</div>
+            </div>
+            
+            <!-- Team Splitter Tab -->
+            <div id="team-splitter" class="tab-content active">
+                <div class="app-container">
+                    <div class="input-section">
+                        <h2>🏃 Add Players</h2>
+                        <div class="player-form" id="playerForm">
+                            <div class="form-row">
+                                <strong>Player Name</strong>
+                                <strong>Position</strong>
+                                <strong>Skill (1-10)</strong>
+                                <span></span>
+                            </div>
+                        </div>
+                        
+                        <div class="buttons">
+                            <button onclick="addPlayerField()">➕ Add Player</button>
+                            <button class="secondary-btn" onclick="addSampleTeam()">🎯 Add Sample Team</button>
+                            <button class="warning-btn" onclick="loadSavedPlayers()">📁 Load Saved Players</button>
+                        </div>
+                        
+                        <div class="buttons">
+                            <button onclick="balanceTeams()" style="background:linear-gradient(45deg,#FF9800,#F57C00)">
+                                ⚖️ Balance Teams
+                            </button>
+                            <button class="secondary-btn" onclick="randomizeTeams()">
+                                🎲 Random Teams
+                            </button>
+                            <button class="warning-btn" onclick="saveCurrentPlayers()">
+                                💾 Save Players
+                            </button>
+                        </div>
+                        
+                        <div class="position-weights">
+                            <h4>Position Weights:</h4>
+                            <div class="weight-item"><span>Goalkeeper:</span> <strong>3.0x</strong></div>
+                            <div class="weight-item"><span>Midfielder:</span> <strong>1.6x</strong></div>
+                            <div class="weight-item"><span>Forward:</span> <strong>1.5x</strong></div>
+                            <div class="weight-item"><span>Defender:</span> <strong>1.4x</strong></div>
+                            <div class="weight-item"><span>Left/Right Wing:</span> <strong>1.3x</strong></div>
+                        </div>
                     </div>
-                    <!-- Player inputs will be added here -->
-                </div>
-                
-                <div class="buttons">
-                    <button onclick="addPlayerField()">➕ Add Player</button>
-                    <button class="secondary-btn" onclick="addSampleTeam()">🎯 Add Sample Team</button>
-                </div>
-                
-                <div class="buttons">
-                    <button onclick="balanceTeams()" style="background:linear-gradient(45deg,#FF9800,#F57C00)">
-                        ⚖️ Balance Teams
-                    </button>
-                    <button class="secondary-btn" onclick="randomizeTeams()">
-                        🎲 Random Teams
-                    </button>
-                </div>
-                
-                <div class="position-weights">
-                    <h4>Position Weights:</h4>
-                    <div class="weight-item"><span>Goalkeeper:</span> <strong>3.0x</strong></div>
-                    <div class="weight-item"><span>Midfielder:</span> <strong>1.6x</strong></div>
-                    <div class="weight-item"><span>Forward:</span> <strong>1.5x</strong></div>
-                    <div class="weight-item"><span>Defender:</span> <strong>1.4x</strong></div>
-                    <div class="weight-item"><span>Left/Right Wing:</span> <strong>1.3x</strong></div>
+                    
+                    <div class="teams-section">
+                        <h2>📊 Teams</h2>
+                        <div id="balanceIndicator" class="balance-indicator">
+                            Click "Balance Teams" to create balanced teams
+                        </div>
+                        <div class="teams-display">
+                            <div class="team">
+                                <div class="team-header">
+                                    <h3>🔵 Team A</h3>
+                                    <span id="teamAStrength" class="team-strength">Strength: 0</span>
+                                </div>
+                                <ul id="teamA" class="player-list"></ul>
+                            </div>
+                            <div class="team">
+                                <div class="team-header">
+                                    <h3>🔴 Team B</h3>
+                                    <span id="teamBStrength" class="team-strength">Strength: 0</span>
+                                </div>
+                                <ul id="teamB" class="player-list"></ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="teams-section">
-                <h2>📊 Teams</h2>
-                <div id="balanceIndicator" class="balance-indicator">
-                    Click "Balance Teams" to create balanced teams
-                </div>
-                <div class="teams-display">
-                    <div class="team">
-                        <div class="team-header">
-                            <h3>🔵 Team A</h3>
-                            <span id="teamAStrength" class="team-strength">Strength: 0</span>
+            <!-- Game Tracker Tab -->
+            <div id="game-tracker" class="tab-content">
+                <div class="app-container">
+                    <div class="input-section">
+                        <h2>🎯 Record Game Results</h2>
+                        <div id="gameTeams">
+                            <p>First create balanced teams in the Team Splitter tab</p>
                         </div>
-                        <ul id="teamA" class="player-list"></ul>
+                        
+                        <div class="score-input">
+                            <div class="score-team">
+                                <h3>Team A Score</h3>
+                                <input type="number" id="teamAScore" min="0" value="0" style="width: 100px; text-align: center;">
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="score-team">
+                                <h3>Team B Score</h3>
+                                <input type="number" id="teamBScore" min="0" value="0" style="width: 100px; text-align: center;">
+                            </div>
+                        </div>
+                        
+                        <div class="buttons">
+                            <button onclick="recordGameResult()">💾 Save Game Results</button>
+                            <button class="secondary-btn" onclick="loadLastGame()">📁 Load Last Game</button>
+                        </div>
                     </div>
-                    <div class="team">
-                        <div class="team-header">
-                            <h3>🔴 Team B</h3>
-                            <span id="teamBStrength" class="team-strength">Strength: 0</span>
+                    
+                    <div class="teams-section">
+                        <h2>Game Details</h2>
+                        <div style="margin-bottom: 20px;">
+                            <label><strong>Game Date:</strong></label>
+                            <input type="date" id="gameDate" style="margin-left: 10px; padding: 8px;">
                         </div>
-                        <ul id="teamB" class="player-list"></ul>
+                        <div style="margin-bottom: 20px;">
+                            <label><strong>Location:</strong></label>
+                            <input type="text" id="gameLocation" placeholder="e.g., Central Park" style="margin-left: 10px; padding: 8px; width: 200px;">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label><strong>Notes:</strong></label><br>
+                            <textarea id="gameNotes" placeholder="Game notes, highlights, etc." style="width: 100%; height: 100px; margin-top: 5px;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Player Statistics Tab -->
+            <div id="player-stats" class="tab-content">
+                <div class="stats-section">
+                    <h2>📈 Player Performance Statistics</h2>
+                    <div class="player-stats">
+                        <table class="stats-table" id="playerStatsTable">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Games</th>
+                                    <th>Wins</th>
+                                    <th>Losses</th>
+                                    <th>Win Rate</th>
+                                    <th>Avg Rating</th>
+                                    <th>Goals</th>
+                                    <th>Last Played</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerStatsBody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">No game data recorded yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game History Tab -->
+            <div id="game-history" class="tab-content">
+                <div class="stats-section">
+                    <h2>📋 Game History</h2>
+                    <div class="game-history" id="gameHistoryList">
+                        <p style="text-align: center; opacity: 0.8;">No games recorded yet</p>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="instructions">
-            <h3>How It Works</h3>
+            <h3>How to Use the System</h3>
             <ul>
-                <li><strong>Positions Matter:</strong> Goalkeepers are weighted highest (3.0x), followed by midfielders (1.6x), forwards (1.5x), defenders (1.4x), and wings (1.3x)</li>
-                <li><strong>Skill Levels:</strong> Rate players from 1 (beginner) to 10 (expert) for more accurate balancing</li>
-                <li><strong>Balanced Algorithm:</strong> The system considers both positions and skills to create fair teams</li>
-                <li><strong>Position Distribution:</strong> Tries to ensure each team has a good mix of positions</li>
-                <li><strong>Team Bonuses:</strong> Extra points for having goalkeepers, defenders, wings, and multiple midfielders</li>
+                <li><strong>Team Splitter:</strong> Create balanced teams and save player lists for future games</li>
+                <li><strong>Game Tracker:</strong> Record game scores and details after each match</li>
+                <li><strong>Player Statistics:</strong> View performance metrics and win rates for all players</li>
+                <li><strong>Game History:</strong> Review past games and results</li>
+                <li>Data is automatically saved between sessions</li>
             </ul>
         </div>
     </div>
 
     <script>
         let playerCount = 0;
+        let currentTeams = { team_a: [], team_b: [] };
+        let gameData = { players: {}, games: [], current_players: [] };
+        
+        // Load saved data on startup
+        window.onload = function() {
+            loadGameData();
+            addPlayerField();
+            addPlayerField();
+            document.getElementById('gameDate').valueAsDate = new Date();
+        };
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Refresh data when switching to stats or history tabs
+            if (tabName === 'player-stats' || tabName === 'game-history') {
+                loadGameData();
+                if (tabName === 'player-stats') updatePlayerStats();
+                if (tabName === 'game-history') updateGameHistory();
+            }
+        }
+        
+        function loadGameData() {
+            fetch('/load-data')
+                .then(response => response.json())
+                .then(data => {
+                    gameData = data;
+                    updateGameTeamsDisplay();
+                })
+                .catch(error => {
+                    console.error('Error loading game data:', error);
+                });
+        }
         
         function addPlayerField(name = '', position = 'midfielder', skill = '5') {
             playerCount++;
@@ -461,7 +787,6 @@ def home():
         }
         
         function addSampleTeam() {
-            // Clear existing players
             document.getElementById('playerForm').querySelectorAll('.form-row:not(:first-child)').forEach(row => row.remove());
             playerCount = 0;
             
@@ -529,7 +854,9 @@ def home():
                 if (data.error) {
                     alert('Error: ' + data.error);
                 } else {
+                    currentTeams = data;
                     displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                    updateGameTeamsDisplay();
                 }
             })
             .catch(error => {
@@ -563,7 +890,9 @@ def home():
                 if (data.error) {
                     alert('Error: ' + data.error);
                 } else {
+                    currentTeams = data;
                     displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                    updateGameTeamsDisplay();
                 }
             })
             .catch(error => {
@@ -579,7 +908,6 @@ def home():
             const teamAStrengthElement = document.getElementById('teamAStrength');
             const teamBStrengthElement = document.getElementById('teamBStrength');
             
-            // Update team strengths with null checks
             if (teamAStrengthElement) {
                 teamAStrengthElement.textContent = `Strength: ${strengthA.toFixed(1)}`;
             }
@@ -587,7 +915,6 @@ def home():
                 teamBStrengthElement.textContent = `Strength: ${strengthB.toFixed(1)}`;
             }
             
-            // Calculate balance
             const balanceDiff = Math.abs(strengthA - strengthB);
             const isBalanced = balanceDiff < 3;
             
@@ -598,7 +925,6 @@ def home():
                 balanceIndicator.className = `balance-indicator ${isBalanced ? 'balanced' : 'unbalanced'}`;
             }
             
-            // Display players
             if (teamAElement) {
                 teamAElement.innerHTML = teamA.map(player => `
                     <li class="player-item">
@@ -628,56 +954,364 @@ def home():
             }
         }
         
-        // Initialize with some player fields
-        window.onload = function() {
-            addPlayerField();
-            addPlayerField();
+        function saveCurrentPlayers() {
+            const players = getPlayersData();
+            if (players.length === 0) {
+                alert('No players to save');
+                return;
+            }
+            
+            fetch('/save-players', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Players saved successfully!');
+                    loadGameData();
+                } else {
+                    alert('Error saving players: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving players');
+            });
+        }
+        
+        function loadSavedPlayers() {
+            document.getElementById('playerForm').querySelectorAll('.form-row:not(:first-child)').forEach(row => row.remove());
+            playerCount = 0;
+            
+            if (gameData.current_players && gameData.current_players.length > 0) {
+                gameData.current_players.forEach(player => {
+                    addPlayerField(player.name, player.position, player.skill_level);
+                });
+                alert('Loaded ' + gameData.current_players.length + ' saved players');
+            } else {
+                alert('No saved players found');
+            }
+        }
+        
+        function updateGameTeamsDisplay() {
+            const gameTeamsDiv = document.getElementById('gameTeams');
+            if (currentTeams.team_a && currentTeams.team_a.length > 0) {
+                gameTeamsDiv.innerHTML = `
+                    <div class="teams-display">
+                        <div class="team">
+                            <h3>🔵 Team A</h3>
+                            <ul class="player-list">
+                                ${currentTeams.team_a.map(player => `
+                                    <li class="player-item">
+                                        <div class="player-info">
+                                            <div class="player-name">${player.name}</div>
+                                            <div class="player-details">
+                                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position.replace('_', ' ')}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        <div class="team">
+                            <h3>🔴 Team B</h3>
+                            <ul class="player-list">
+                                ${currentTeams.team_b.map(player => `
+                                    <li class="player-item">
+                                        <div class="player-info">
+                                            <div class="player-name">${player.name}</div>
+                                            <div class="player-details">
+                                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position.replace('_', ' ')}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            } else {
+                gameTeamsDiv.innerHTML = '<p>First create balanced teams in the Team Splitter tab</p>';
+            }
+        }
+        
+        function recordGameResult() {
+            const teamAScore = parseInt(document.getElementById('teamAScore').value) || 0;
+            const teamBScore = parseInt(document.getElementById('teamBScore').value) || 0;
+            const gameDate = document.getElementById('gameDate').value;
+            const location = document.getElementById('gameLocation').value;
+            const notes = document.getElementById('gameNotes').value;
+            
+            if (!currentTeams.team_a || currentTeams.team_a.length === 0) {
+                alert('Please create teams first in the Team Splitter tab');
+                return;
+            }
+            
+            const gameData = {
+                date: gameDate,
+                location: location,
+                notes: notes,
+                team_a: {
+                    players: currentTeams.team_a,
+                    score: teamAScore
+                },
+                team_b: {
+                    players: currentTeams.team_b,
+                    score: teamBScore
+                }
+            };
+            
+            fetch('/record-game', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(gameData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Game recorded successfully!');
+                    // Reset scores
+                    document.getElementById('teamAScore').value = 0;
+                    document.getElementById('teamBScore').value = 0;
+                    document.getElementById('gameNotes').value = '';
+                    loadGameData();
+                } else {
+                    alert('Error recording game: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error recording game');
+            });
+        }
+        
+        function loadLastGame() {
+            if (gameData.games && gameData.games.length > 0) {
+                const lastGame = gameData.games[gameData.games.length - 1];
+                document.getElementById('teamAScore').value = lastGame.team_a.score;
+                document.getElementById('teamBScore').value = lastGame.team_b.score;
+                document.getElementById('gameDate').value = lastGame.date;
+                document.getElementById('gameLocation').value = lastGame.location || '';
+                document.getElementById('gameNotes').value = lastGame.notes || '';
+                
+                // Load teams
+                currentTeams = {
+                    team_a: lastGame.team_a.players,
+                    team_b: lastGame.team_b.players
+                };
+                updateGameTeamsDisplay();
+                
+                alert('Last game loaded successfully');
+            } else {
+                alert('No previous games found');
+            }
+        }
+        
+        function updatePlayerStats() {
+            const statsBody = document.getElementById('playerStatsBody');
+            
+            if (!gameData.players || Object.keys(gameData.players).length === 0) {
+                statsBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No player data available</td></tr>';
+                return;
+            }
+            
+            let statsHTML = '';
+            Object.entries(gameData.players).forEach(([playerName, playerData]) => {
+                const totalGames = playerData.games_played || 0;
+                const wins = playerData.wins || 0;
+                const losses = totalGames - wins;
+                const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+                const avgRating = playerData.average_rating ? playerData.average_rating.toFixed(1) : 'N/A';
+                const goals = playerData.total_goals || 0;
+                const lastPlayed = playerData.last_played || 'Never';
+                
+                let winRateClass = 'medium';
+                if (winRate >= 60) winRateClass = 'high';
+                else if (winRate < 40) winRateClass = 'low';
+                
+                statsHTML += `
+                    <tr>
+                        <td><strong>${playerName}</strong></td>
+                        <td>${totalGames}</td>
+                        <td>${wins}</td>
+                        <td>${losses}</td>
+                        <td><span class="win-rate ${winRateClass}">${winRate}%</span></td>
+                        <td>${avgRating}</td>
+                        <td>${goals}</td>
+                        <td>${lastPlayed}</td>
+                    </tr>
+                `;
+            });
+            
+            statsBody.innerHTML = statsHTML || '<tr><td colspan="8" style="text-align: center;">No game data recorded yet</td></tr>';
+        }
+        
+        function updateGameHistory() {
+            const historyList = document.getElementById('gameHistoryList');
+            
+            if (!gameData.games || gameData.games.length === 0) {
+                historyList.innerHTML = '<p style="text-align: center; opacity: 0.8;">No games recorded yet</p>';
+                return;
+            }
+            
+            let historyHTML = '';
+            gameData.games.slice().reverse().forEach((game, index) => {
+                const gameNumber = gameData.games.length - index;
+                const winner = game.team_a.score > game.team_b.score ? 'Team A' : 
+                              game.team_b.score > game.team_a.score ? 'Team B' : 'Draw';
+                const isWin = winner !== 'Draw';
+                
+                historyHTML += `
+                    <div class="game-item ${isWin ? '' : 'lost'}">
+                        <div class="game-header">
+                            <strong>Game #${gameNumber}</strong>
+                            <span class="game-date">${game.date}</span>
+                        </div>
+                        <div class="game-score">
+                            Team A: ${game.team_a.score} - ${game.team_b.score} :Team B
+                            ${winner !== 'Draw' ? `<span style="margin-left: 10px;">🏆 ${winner} Wins!</span>` : '🤝 Draw'}
+                        </div>
+                        ${game.location ? `<div><strong>Location:</strong> ${game.location}</div>` : ''}
+                        ${game.notes ? `<div><strong>Notes:</strong> ${game.notes}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            historyList.innerHTML = historyHTML;
         }
     </script>
 </body>
 </html>
     '''
 
+@app.route('/load-data', methods=['GET'])
+def load_data_route():
+    """Load all game data"""
+    try:
+        data = load_data()
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error loading data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/save-players', methods=['POST'])
+def save_players():
+    """Save current player list"""
+    try:
+        data = request.get_json()
+        players_data = data['players']
+        
+        # Load existing data
+        all_data = load_data()
+        
+        # Update current players
+        all_data['current_players'] = players_data
+        
+        # Update player profiles
+        for player_data in players_data:
+            name = player_data['name']
+            if name not in all_data['players']:
+                all_data['players'][name] = {
+                    'games_played': 0,
+                    'wins': 0,
+                    'total_goals': 0,
+                    'average_rating': 0,
+                    'last_played': None
+                }
+        
+        # Save updated data
+        if save_data(all_data):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to save data'}), 500
+            
+    except Exception as e:
+        print(f"Error saving players: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/record-game', methods=['POST'])
+def record_game():
+    """Record a completed game"""
+    try:
+        game_data = request.get_json()
+        
+        # Load existing data
+        all_data = load_data()
+        
+        # Add the new game
+        all_data['games'].append(game_data)
+        
+        # Update player statistics
+        team_a_won = game_data['team_a']['score'] > game_data['team_b']['score']
+        team_b_won = game_data['team_b']['score'] > game_data['team_a']['score']
+        
+        # Update Team A players
+        for player in game_data['team_a']['players']:
+            name = player['name']
+            if name not in all_data['players']:
+                all_data['players'][name] = {
+                    'games_played': 0,
+                    'wins': 0,
+                    'total_goals': 0,
+                    'average_rating': 0,
+                    'last_played': None
+                }
+            
+            all_data['players'][name]['games_played'] += 1
+            if team_a_won:
+                all_data['players'][name]['wins'] += 1
+            all_data['players'][name]['last_played'] = game_data['date']
+        
+        # Update Team B players
+        for player in game_data['team_b']['players']:
+            name = player['name']
+            if name not in all_data['players']:
+                all_data['players'][name] = {
+                    'games_played': 0,
+                    'wins': 0,
+                    'total_goals': 0,
+                    'average_rating': 0,
+                    'last_played': None
+                }
+            
+            all_data['players'][name]['games_played'] += 1
+            if team_b_won:
+                all_data['players'][name]['wins'] += 1
+            all_data['players'][name]['last_played'] = game_data['date']
+        
+        # Save updated data
+        if save_data(all_data):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to save game data'}), 500
+            
+    except Exception as e:
+        print(f"Error recording game: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/balance-teams', methods=['POST'])
 def balance_teams():
     try:
-        print("=== BALANCE TEAMS ENDPOINT CALLED ===")
-        
-        if not request.is_json:
-            return jsonify({'error': 'Request must be JSON'}), 400
-            
         data = request.get_json()
-        print(f"Received data: {data}")
-        
-        if not data or 'players' not in data:
-            print("No player data received")
-            return jsonify({'error': 'No player data received'}), 400
-            
         players_data = data['players']
-        print(f"Processing {len(players_data)} players")
-        
-        if len(players_data) < 2:
-            return jsonify({'error': 'Need at least 2 players'}), 400
         
         players = []
-        for i, player_data in enumerate(players_data):
-            print(f"Player {i}: {player_data}")
-            # Validate required fields
-            if 'name' not in player_data or 'position' not in player_data or 'skill_level' not in player_data:
-                return jsonify({'error': f'Missing fields in player data: {player_data}'}), 400
-                
+        for player_data in players_data:
             player = Player(
-                name=str(player_data['name']),
-                position=str(player_data['position']),
-                skill_level=int(player_data['skill_level'])
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
             )
             players.append(player)
         
-        print(f"Created {len(players)} player objects")
         team_a, team_b = TeamBalancer.balance_teams(players)
-        print(f"Balanced into teams: {len(team_a)} vs {len(team_b)}")
         
-        # Convert players to dictionaries for JSON serialization
         team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
         team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
         
@@ -691,59 +1325,33 @@ def balance_teams():
             'strength_b': strength_b
         }
         
-        print(f"Returning response successfully")
         return jsonify(response)
         
     except Exception as e:
         error_msg = f"Error in balance_teams: {str(e)}"
         print(error_msg)
-        print(traceback.format_exc())
         return jsonify({'error': error_msg}), 500
 
 @app.route('/random-teams', methods=['POST'])
 def random_teams():
     try:
-        print("=== RANDOM TEAMS ENDPOINT CALLED ===")
-        
-        if not request.is_json:
-            return jsonify({'error': 'Request must be JSON'}), 400
-            
         data = request.get_json()
-        print(f"Received data: {data}")
-        
-        if not data or 'players' not in data:
-            print("No player data received")
-            return jsonify({'error': 'No player data received'}), 400
-            
         players_data = data['players']
-        print(f"Processing {len(players_data)} players")
-        
-        if len(players_data) < 2:
-            return jsonify({'error': 'Need at least 2 players'}), 400
         
         players = []
-        for i, player_data in enumerate(players_data):
-            print(f"Player {i}: {player_data}")
-            # Validate required fields
-            if 'name' not in player_data or 'position' not in player_data or 'skill_level' not in player_data:
-                return jsonify({'error': f'Missing fields in player data: {player_data}'}), 400
-                
+        for player_data in players_data:
             player = Player(
-                name=str(player_data['name']),
-                position=str(player_data['position']),
-                skill_level=int(player_data['skill_level'])
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
             )
             players.append(player)
         
-        print(f"Created {len(players)} player objects")
-        # Simple random shuffle
         random.shuffle(players)
         split_point = len(players) // 2
         team_a = players[:split_point]
         team_b = players[split_point:]
-        print(f"Randomized into teams: {len(team_a)} vs {len(team_b)}")
         
-        # Convert players to dictionaries for JSON serialization
         team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
         team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
         
@@ -757,13 +1365,11 @@ def random_teams():
             'strength_b': strength_b
         }
         
-        print(f"Returning response successfully")
         return jsonify(response)
         
     except Exception as e:
         error_msg = f"Error in random_teams: {str(e)}"
         print(error_msg)
-        print(traceback.format_exc())
         return jsonify({'error': error_msg}), 500
 
 if __name__ == '__main__':
