@@ -24,6 +24,9 @@ class TeamBalancer:
     
     @staticmethod
     def calculate_team_strength(players):
+        if not players:
+            return 0
+            
         strength = 0
         position_count = {'goalkeeper': 0, 'defender': 0, 'midfielder': 0, 'forward': 0}
         
@@ -317,16 +320,6 @@ def home():
             margin-bottom: 10px;
             line-height: 1.5;
         }
-        
-        .debug-info {
-            background: rgba(255, 0, 0, 0.1);
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 12px;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -362,10 +355,6 @@ def home():
                         🎲 Random Teams
                     </button>
                 </div>
-                
-                <div class="debug-info" id="debugInfo">
-                    Debug information will appear here
-                </div>
             </div>
             
             <div class="teams-section">
@@ -377,14 +366,14 @@ def home():
                     <div class="team">
                         <div class="team-header">
                             <h3>🔵 Team A</h3>
-                            <span class="team-strength">Strength: 0</span>
+                            <span id="teamAStrength" class="team-strength">Strength: 0</span>
                         </div>
                         <ul id="teamA" class="player-list"></ul>
                     </div>
                     <div class="team">
                         <div class="team-header">
                             <h3>🔴 Team B</h3>
-                            <span class="team-strength">Strength: 0</span>
+                            <span id="teamBStrength" class="team-strength">Strength: 0</span>
                         </div>
                         <ul id="teamB" class="player-list"></ul>
                     </div>
@@ -405,12 +394,6 @@ def home():
 
     <script>
         let playerCount = 0;
-        
-        function showDebugInfo(message) {
-            const debugElement = document.getElementById('debugInfo');
-            debugElement.textContent = message;
-            debugElement.style.display = 'block';
-        }
         
         function addPlayerField(name = '', position = 'midfielder', skill = '5') {
             playerCount++;
@@ -477,7 +460,6 @@ def home():
         
         function balanceTeams() {
             const players = getPlayersData();
-            showDebugInfo(`Sending ${players.length} players to server...`);
             
             if (players.length < 2) {
                 alert('Please add at least 2 players');
@@ -492,7 +474,6 @@ def home():
                 body: JSON.stringify({ players: players })
             })
             .then(response => {
-                showDebugInfo(`Response status: ${response.status}`);
                 if (!response.ok) {
                     throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
@@ -500,24 +481,19 @@ def home():
             })
             .then(data => {
                 if (data.error) {
-                    showDebugInfo(`Server error: ${data.error}`);
                     alert('Error: ' + data.error);
                 } else {
-                    showDebugInfo('Success! Teams received from server');
                     displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
                 }
             })
             .catch(error => {
-                const errorMsg = `Fetch error: ${error.message}`;
                 console.error('Error:', error);
-                showDebugInfo(errorMsg);
-                alert('Error balancing teams. Check debug info below.');
+                alert('Error balancing teams: ' + error.message);
             });
         }
         
         function randomizeTeams() {
             const players = getPlayersData();
-            showDebugInfo(`Sending ${players.length} players to server...`);
             
             if (players.length < 2) {
                 alert('Please add at least 2 players');
@@ -532,7 +508,6 @@ def home():
                 body: JSON.stringify({ players: players })
             })
             .then(response => {
-                showDebugInfo(`Response status: ${response.status}`);
                 if (!response.ok) {
                     throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
@@ -540,18 +515,14 @@ def home():
             })
             .then(data => {
                 if (data.error) {
-                    showDebugInfo(`Server error: ${data.error}`);
                     alert('Error: ' + data.error);
                 } else {
-                    showDebugInfo('Success! Teams received from server');
                     displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
                 }
             })
             .catch(error => {
-                const errorMsg = `Fetch error: ${error.message}`;
                 console.error('Error:', error);
-                showDebugInfo(errorMsg);
-                alert('Error creating random teams. Check debug info below.');
+                alert('Error creating random teams: ' + error.message);
             });
         }
         
@@ -559,44 +530,56 @@ def home():
             const teamAElement = document.getElementById('teamA');
             const teamBElement = document.getElementById('teamB');
             const balanceIndicator = document.getElementById('balanceIndicator');
+            const teamAStrengthElement = document.getElementById('teamAStrength');
+            const teamBStrengthElement = document.getElementById('teamBStrength');
             
-            // Update team strengths
-            document.querySelector('#teamA .team-strength').textContent = `Strength: ${strengthA.toFixed(1)}`;
-            document.querySelector('#teamB .team-strength').textContent = `Strength: ${strengthB.toFixed(1)}`;
+            // Update team strengths with null checks
+            if (teamAStrengthElement) {
+                teamAStrengthElement.textContent = `Strength: ${strengthA.toFixed(1)}`;
+            }
+            if (teamBStrengthElement) {
+                teamBStrengthElement.textContent = `Strength: ${strengthB.toFixed(1)}`;
+            }
             
             // Calculate balance
             const balanceDiff = Math.abs(strengthA - strengthB);
             const isBalanced = balanceDiff < 3;
             
-            balanceIndicator.innerHTML = isBalanced ? 
-                `✅ Teams are well balanced! (Difference: ${balanceDiff.toFixed(1)})` :
-                `⚠️ Teams are somewhat unbalanced (Difference: ${balanceDiff.toFixed(1)})`;
-            balanceIndicator.className = `balance-indicator ${isBalanced ? 'balanced' : 'unbalanced'}`;
+            if (balanceIndicator) {
+                balanceIndicator.innerHTML = isBalanced ? 
+                    `✅ Teams are well balanced! (Difference: ${balanceDiff.toFixed(1)})` :
+                    `⚠️ Teams are somewhat unbalanced (Difference: ${balanceDiff.toFixed(1)})`;
+                balanceIndicator.className = `balance-indicator ${isBalanced ? 'balanced' : 'unbalanced'}`;
+            }
             
             // Display players
-            teamAElement.innerHTML = teamA.map(player => `
-                <li class="player-item">
-                    <div class="player-info">
-                        <div class="player-name">${player.name}</div>
-                        <div class="player-details">
-                            <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
-                            • Skill: ${player.skill_level}/10
+            if (teamAElement) {
+                teamAElement.innerHTML = teamA.map(player => `
+                    <li class="player-item">
+                        <div class="player-info">
+                            <div class="player-name">${player.name}</div>
+                            <div class="player-details">
+                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
+                                • Skill: ${player.skill_level}/10
+                            </div>
                         </div>
-                    </div>
-                </li>
-            `).join('');
+                    </li>
+                `).join('');
+            }
             
-            teamBElement.innerHTML = teamB.map(player => `
-                <li class="player-item">
-                    <div class="player-info">
-                        <div class="player-name">${player.name}</div>
-                        <div class="player-details">
-                            <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
-                            • Skill: ${player.skill_level}/10
+            if (teamBElement) {
+                teamBElement.innerHTML = teamB.map(player => `
+                    <li class="player-item">
+                        <div class="player-info">
+                            <div class="player-name">${player.name}</div>
+                            <div class="player-details">
+                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
+                                • Skill: ${player.skill_level}/10
+                            </div>
                         </div>
-                    </div>
-                </li>
-            `).join('');
+                    </li>
+                `).join('');
+            }
         }
         
         // Initialize with some player fields
@@ -613,6 +596,10 @@ def home():
 def balance_teams():
     try:
         print("=== BALANCE TEAMS ENDPOINT CALLED ===")
+        
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+            
         data = request.get_json()
         print(f"Received data: {data}")
         
@@ -623,13 +610,20 @@ def balance_teams():
         players_data = data['players']
         print(f"Processing {len(players_data)} players")
         
+        if len(players_data) < 2:
+            return jsonify({'error': 'Need at least 2 players'}), 400
+        
         players = []
         for i, player_data in enumerate(players_data):
             print(f"Player {i}: {player_data}")
+            # Validate required fields
+            if 'name' not in player_data or 'position' not in player_data or 'skill_level' not in player_data:
+                return jsonify({'error': f'Missing fields in player data: {player_data}'}), 400
+                
             player = Player(
-                name=player_data['name'],
-                position=player_data['position'],
-                skill_level=player_data['skill_level']
+                name=str(player_data['name']),
+                position=str(player_data['position']),
+                skill_level=int(player_data['skill_level'])
             )
             players.append(player)
         
@@ -651,7 +645,7 @@ def balance_teams():
             'strength_b': strength_b
         }
         
-        print(f"Returning response: {response}")
+        print(f"Returning response successfully")
         return jsonify(response)
         
     except Exception as e:
@@ -664,6 +658,10 @@ def balance_teams():
 def random_teams():
     try:
         print("=== RANDOM TEAMS ENDPOINT CALLED ===")
+        
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+            
         data = request.get_json()
         print(f"Received data: {data}")
         
@@ -674,13 +672,20 @@ def random_teams():
         players_data = data['players']
         print(f"Processing {len(players_data)} players")
         
+        if len(players_data) < 2:
+            return jsonify({'error': 'Need at least 2 players'}), 400
+        
         players = []
         for i, player_data in enumerate(players_data):
             print(f"Player {i}: {player_data}")
+            # Validate required fields
+            if 'name' not in player_data or 'position' not in player_data or 'skill_level' not in player_data:
+                return jsonify({'error': f'Missing fields in player data: {player_data}'}), 400
+                
             player = Player(
-                name=player_data['name'],
-                position=player_data['position'],
-                skill_level=player_data['skill_level']
+                name=str(player_data['name']),
+                position=str(player_data['position']),
+                skill_level=int(player_data['skill_level'])
             )
             players.append(player)
         
@@ -706,7 +711,7 @@ def random_teams():
             'strength_b': strength_b
         }
         
-        print(f"Returning response: {response}")
+        print(f"Returning response successfully")
         return jsonify(response)
         
     except Exception as e:
