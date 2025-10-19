@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 import random
 import math
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # This fixes CORS issues
 
 class Player:
     def __init__(self, name, position, skill_level=5):
@@ -462,6 +464,7 @@ def home():
                 return;
             }
             
+            // Use relative URL for the same domain
             fetch('/balance-teams', {
                 method: 'POST',
                 headers: {
@@ -469,13 +472,22 @@ def home():
                 },
                 body: JSON.stringify({ players: players })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
-                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error balancing teams');
+                alert('Error balancing teams. Check console for details.');
             });
         }
         
@@ -494,13 +506,22 @@ def home():
                 },
                 body: JSON.stringify({ players: players })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
-                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error creating random teams');
+                alert('Error creating random teams. Check console for details.');
             });
         }
         
@@ -560,67 +581,81 @@ def home():
 
 @app.route('/balance-teams', methods=['POST'])
 def balance_teams():
-    data = request.json
-    players_data = data['players']
-    
-    players = []
-    for player_data in players_data:
-        player = Player(
-            name=player_data['name'],
-            position=player_data['position'],
-            skill_level=player_data['skill_level']
-        )
-        players.append(player)
-    
-    team_a, team_b = TeamBalancer.balance_teams(players)
-    
-    # Convert players to dictionaries for JSON serialization
-    team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
-    team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
-    
-    strength_a = TeamBalancer.calculate_team_strength(team_a)
-    strength_b = TeamBalancer.calculate_team_strength(team_b)
-    
-    return jsonify({
-        'team_a': team_a_dict,
-        'team_b': team_b_dict,
-        'strength_a': strength_a,
-        'strength_b': strength_b
-    })
+    try:
+        data = request.get_json()
+        if not data or 'players' not in data:
+            return jsonify({'error': 'No player data received'}), 400
+            
+        players_data = data['players']
+        
+        players = []
+        for player_data in players_data:
+            player = Player(
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
+            )
+            players.append(player)
+        
+        team_a, team_b = TeamBalancer.balance_teams(players)
+        
+        # Convert players to dictionaries for JSON serialization
+        team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
+        team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
+        
+        strength_a = TeamBalancer.calculate_team_strength(team_a)
+        strength_b = TeamBalancer.calculate_team_strength(team_b)
+        
+        return jsonify({
+            'team_a': team_a_dict,
+            'team_b': team_b_dict,
+            'strength_a': strength_a,
+            'strength_b': strength_b
+        })
+    except Exception as e:
+        print(f"Error in balance_teams: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/random-teams', methods=['POST'])
 def random_teams():
-    data = request.json
-    players_data = data['players']
-    
-    players = []
-    for player_data in players_data:
-        player = Player(
-            name=player_data['name'],
-            position=player_data['position'],
-            skill_level=player_data['skill_level']
-        )
-        players.append(player)
-    
-    # Simple random shuffle
-    random.shuffle(players)
-    split_point = len(players) // 2
-    team_a = players[:split_point]
-    team_b = players[split_point:]
-    
-    # Convert players to dictionaries for JSON serialization
-    team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
-    team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
-    
-    strength_a = TeamBalancer.calculate_team_strength(team_a)
-    strength_b = TeamBalancer.calculate_team_strength(team_b)
-    
-    return jsonify({
-        'team_a': team_a_dict,
-        'team_b': team_b_dict,
-        'strength_a': strength_a,
-        'strength_b': strength_b
-    })
+    try:
+        data = request.get_json()
+        if not data or 'players' not in data:
+            return jsonify({'error': 'No player data received'}), 400
+            
+        players_data = data['players']
+        
+        players = []
+        for player_data in players_data:
+            player = Player(
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
+            )
+            players.append(player)
+        
+        # Simple random shuffle
+        random.shuffle(players)
+        split_point = len(players) // 2
+        team_a = players[:split_point]
+        team_b = players[split_point:]
+        
+        # Convert players to dictionaries for JSON serialization
+        team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
+        team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
+        
+        strength_a = TeamBalancer.calculate_team_strength(team_a)
+        strength_b = TeamBalancer.calculate_team_strength(team_b)
+        
+        return jsonify({
+            'team_a': team_a_dict,
+            'team_b': team_b_dict,
+            'strength_a': strength_a,
+            'strength_b': strength_b
+        })
+    except Exception as e:
+        print(f"Error in random_teams: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
