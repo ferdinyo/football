@@ -71,9 +71,492 @@ class TeamBalancer:
 
 @app.route('/')
 def home():
-    # [PASTE THE ENTIRE HTML CODE FROM THE PREVIOUS RESPONSE HERE]
-    # This is too long to include twice, but use the complete HTML from our previous code
-    return '''<!DOCTYPE html>...'''  # Your full HTML goes here
+    return '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Football Team Splitter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2a5298);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .input-section, .teams-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            color: #FFD700;
+        }
+        
+        .player-form {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input, select {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+        }
+        
+        .skill-input {
+            text-align: center;
+        }
+        
+        .remove-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .remove-btn:hover {
+            background: #cc0000;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            flex: 1;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .secondary-btn {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        
+        .teams-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .team {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .team-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .team-strength {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .player-list {
+            list-style: none;
+        }
+        
+        .player-item {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        
+        .player-item:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .player-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        
+        .position-badge {
+            background: rgba(76, 175, 80, 0.3);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        
+        .position-gk { background: rgba(255, 87, 34, 0.3); }
+        .position-def { background: rgba(33, 150, 243, 0.3); }
+        .position-mid { background: rgba(156, 39, 176, 0.3); }
+        .position-fwd { background: rgba(255, 193, 7, 0.3); }
+        
+        .balance-indicator {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .balanced { color: #4CAF50; }
+        .unbalanced { color: #ff4444; }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+        
+        .instructions h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚽ Advanced Team Splitter</h1>
+            <p>Create balanced football teams based on player positions and skill levels</p>
+        </header>
+        
+        <div class="app-container">
+            <div class="input-section">
+                <h2>🏃 Add Players</h2>
+                <div class="player-form" id="playerForm">
+                    <div class="form-row">
+                        <strong>Player Name</strong>
+                        <strong>Position</strong>
+                        <strong>Skill (1-10)</strong>
+                        <span></span>
+                    </div>
+                    <!-- Player inputs will be added here -->
+                </div>
+                
+                <div class="buttons">
+                    <button onclick="addPlayerField()">➕ Add Player</button>
+                    <button class="secondary-btn" onclick="addSampleTeam()">🎯 Add Sample Team</button>
+                </div>
+                
+                <div class="buttons">
+                    <button onclick="balanceTeams()" style="background:linear-gradient(45deg,#FF9800,#F57C00)">
+                        ⚖️ Balance Teams
+                    </button>
+                    <button class="secondary-btn" onclick="randomizeTeams()">
+                        🎲 Random Teams
+                    </button>
+                </div>
+            </div>
+            
+            <div class="teams-section">
+                <h2>📊 Teams</h2>
+                <div id="balanceIndicator" class="balance-indicator">
+                    Click "Balance Teams" to create balanced teams
+                </div>
+                <div class="teams-display">
+                    <div class="team">
+                        <div class="team-header">
+                            <h3>🔵 Team A</h3>
+                            <span class="team-strength">Strength: 0</span>
+                        </div>
+                        <ul id="teamA" class="player-list"></ul>
+                    </div>
+                    <div class="team">
+                        <div class="team-header">
+                            <h3>🔴 Team B</h3>
+                            <span class="team-strength">Strength: 0</span>
+                        </div>
+                        <ul id="teamB" class="player-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>How It Works</h3>
+            <ul>
+                <li><strong>Positions Matter:</strong> Goalkeepers are weighted highest, followed by midfielders, defenders, and forwards</li>
+                <li><strong>Skill Levels:</strong> Rate players from 1 (beginner) to 10 (expert) for more accurate balancing</li>
+                <li><strong>Balanced Algorithm:</strong> The system considers both positions and skills to create fair teams</li>
+                <li><strong>Position Distribution:</strong> Tries to ensure each team has a good mix of positions</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let playerCount = 0;
+        
+        function addPlayerField(name = '', position = 'midfielder', skill = '5') {
+            playerCount++;
+            const form = document.getElementById('playerForm');
+            const div = document.createElement('div');
+            div.className = 'form-row';
+            div.innerHTML = `
+                <input type="text" class="player-name" placeholder="Player name" value="${name}">
+                <select class="player-position">
+                    <option value="goalkeeper" ${position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                    <option value="defender" ${position === 'defender' ? 'selected' : ''}>Defender</option>
+                    <option value="midfielder" ${position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                    <option value="forward" ${position === 'forward' ? 'selected' : ''}>Forward</option>
+                </select>
+                <input type="number" class="player-skill skill-input" min="1" max="10" value="${skill}">
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+            `;
+            form.appendChild(div);
+        }
+        
+        function addSampleTeam() {
+            // Clear existing players
+            document.getElementById('playerForm').querySelectorAll('.form-row:not(:first-child)').forEach(row => row.remove());
+            playerCount = 0;
+            
+            const samplePlayers = [
+                ['Alex', 'goalkeeper', 8],
+                ['Ben', 'defender', 7],
+                ['Chris', 'defender', 6],
+                ['David', 'defender', 5],
+                ['Eric', 'midfielder', 8],
+                ['Frank', 'midfielder', 7],
+                ['George', 'midfielder', 6],
+                ['Henry', 'midfielder', 5],
+                ['Ian', 'forward', 8],
+                ['John', 'forward', 6],
+                ['Kevin', 'forward', 5],
+                ['Liam', 'goalkeeper', 6]
+            ];
+            
+            samplePlayers.forEach(player => addPlayerField(player[0], player[1], player[2]));
+        }
+        
+        function getPlayersData() {
+            const players = [];
+            const rows = document.getElementById('playerForm').querySelectorAll('.form-row:not(:first-child)');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.player-name').value.trim();
+                const position = row.querySelector('.player-position').value;
+                const skill = parseInt(row.querySelector('.player-skill').value) || 5;
+                
+                if (name) {
+                    players.push({
+                        name: name,
+                        position: position,
+                        skill_level: skill
+                    });
+                }
+            });
+            
+            return players;
+        }
+        
+        function balanceTeams() {
+            const players = getPlayersData();
+            
+            if (players.length < 2) {
+                alert('Please add at least 2 players');
+                return;
+            }
+            
+            fetch('/balance-teams', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error balancing teams');
+            });
+        }
+        
+        function randomizeTeams() {
+            const players = getPlayersData();
+            
+            if (players.length < 2) {
+                alert('Please add at least 2 players');
+                return;
+            }
+            
+            fetch('/random-teams', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating random teams');
+            });
+        }
+        
+        function displayTeams(teamA, teamB, strengthA, strengthB) {
+            const teamAElement = document.getElementById('teamA');
+            const teamBElement = document.getElementById('teamB');
+            const balanceIndicator = document.getElementById('balanceIndicator');
+            
+            // Update team strengths
+            document.querySelector('#teamA .team-strength').textContent = `Strength: ${strengthA.toFixed(1)}`;
+            document.querySelector('#teamB .team-strength').textContent = `Strength: ${strengthB.toFixed(1)}`;
+            
+            // Calculate balance
+            const balanceDiff = Math.abs(strengthA - strengthB);
+            const isBalanced = balanceDiff < 3;
+            
+            balanceIndicator.innerHTML = isBalanced ? 
+                `✅ Teams are well balanced! (Difference: ${balanceDiff.toFixed(1)})` :
+                `⚠️ Teams are somewhat unbalanced (Difference: ${balanceDiff.toFixed(1)})`;
+            balanceIndicator.className = `balance-indicator ${isBalanced ? 'balanced' : 'unbalanced'}`;
+            
+            // Display players
+            teamAElement.innerHTML = teamA.map(player => `
+                <li class="player-item">
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-details">
+                            <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
+                            • Skill: ${player.skill_level}/10
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+            
+            teamBElement.innerHTML = teamB.map(player => `
+                <li class="player-item">
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-details">
+                            <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
+                            • Skill: ${player.skill_level}/10
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+        }
+        
+        // Initialize with some player fields
+        window.onload = function() {
+            addPlayerField();
+            addPlayerField();
+        }
+    </script>
+</body>
+</html>
+    '''
 
 @app.route('/balance-teams', methods=['POST'])
 def balance_teams():
