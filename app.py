@@ -16,10 +16,12 @@ class Player:
 
 class TeamBalancer:
     POSITION_WEIGHTS = {
-        'goalkeeper': 3.0,
-        'defender': 1.2,
-        'midfielder': 1.5,
-        'forward': 1.3
+        'goalkeeper': 3.0,      # Highest importance - every team needs one
+        'defender': 1.4,        # Important for defense
+        'left_wing': 1.3,       # Wing players create width
+        'right_wing': 1.3,      # Wing players create width  
+        'midfielder': 1.6,      # Highest field weight - control the game
+        'forward': 1.5          # Important for scoring
     }
     
     @staticmethod
@@ -28,19 +30,36 @@ class TeamBalancer:
             return 0
             
         strength = 0
-        position_count = {'goalkeeper': 0, 'defender': 0, 'midfielder': 0, 'forward': 0}
+        position_count = {
+            'goalkeeper': 0, 'defender': 0, 'left_wing': 0, 
+            'right_wing': 0, 'midfielder': 0, 'forward': 0
+        }
         
         for player in players:
             strength += player.skill_level * TeamBalancer.POSITION_WEIGHTS.get(player.position, 1.0)
             position_count[player.position] += 1
         
-        # Bonus for having a goalkeeper
+        # Bonus for having a goalkeeper (essential)
         if position_count['goalkeeper'] > 0:
-            strength += 2
+            strength += 3
         
-        # Balance bonus for having multiple positions
-        position_variety = len([count for count in position_count.values() if count > 0])
-        strength += position_variety * 0.5
+        # Bonus for having defensive coverage
+        if position_count['defender'] > 0:
+            strength += position_count['defender'] * 0.5
+        
+        # Bonus for having wing coverage
+        if position_count['left_wing'] > 0 or position_count['right_wing'] > 0:
+            strength += 1
+        
+        # Bonus for midfield control
+        if position_count['midfielder'] >= 2:
+            strength += 2
+        elif position_count['midfielder'] > 0:
+            strength += 1
+        
+        # Bonus for attacking threat
+        if position_count['forward'] > 0:
+            strength += position_count['forward'] * 0.3
         
         return strength
     
@@ -285,8 +304,10 @@ def home():
         
         .position-gk { background: rgba(255, 87, 34, 0.3); }
         .position-def { background: rgba(33, 150, 243, 0.3); }
-        .position-mid { background: rgba(156, 39, 176, 0.3); }
-        .position-fwd { background: rgba(255, 193, 7, 0.3); }
+        .position-lw { background: rgba(156, 39, 176, 0.3); }
+        .position-rw { background: rgba(255, 193, 7, 0.3); }
+        .position-mid { background: rgba(76, 175, 80, 0.3); }
+        .position-fwd { background: rgba(244, 67, 54, 0.3); }
         
         .balance-indicator {
             text-align: center;
@@ -319,6 +340,19 @@ def home():
         .instructions li {
             margin-bottom: 10px;
             line-height: 1.5;
+        }
+        
+        .position-weights {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .weight-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
         }
     </style>
 </head>
@@ -355,6 +389,15 @@ def home():
                         🎲 Random Teams
                     </button>
                 </div>
+                
+                <div class="position-weights">
+                    <h4>Position Weights:</h4>
+                    <div class="weight-item"><span>Goalkeeper:</span> <strong>3.0x</strong></div>
+                    <div class="weight-item"><span>Midfielder:</span> <strong>1.6x</strong></div>
+                    <div class="weight-item"><span>Forward:</span> <strong>1.5x</strong></div>
+                    <div class="weight-item"><span>Defender:</span> <strong>1.4x</strong></div>
+                    <div class="weight-item"><span>Left/Right Wing:</span> <strong>1.3x</strong></div>
+                </div>
             </div>
             
             <div class="teams-section">
@@ -384,10 +427,11 @@ def home():
         <div class="instructions">
             <h3>How It Works</h3>
             <ul>
-                <li><strong>Positions Matter:</strong> Goalkeepers are weighted highest, followed by midfielders, defenders, and forwards</li>
+                <li><strong>Positions Matter:</strong> Goalkeepers are weighted highest (3.0x), followed by midfielders (1.6x), forwards (1.5x), defenders (1.4x), and wings (1.3x)</li>
                 <li><strong>Skill Levels:</strong> Rate players from 1 (beginner) to 10 (expert) for more accurate balancing</li>
                 <li><strong>Balanced Algorithm:</strong> The system considers both positions and skills to create fair teams</li>
                 <li><strong>Position Distribution:</strong> Tries to ensure each team has a good mix of positions</li>
+                <li><strong>Team Bonuses:</strong> Extra points for having goalkeepers, defenders, wings, and multiple midfielders</li>
             </ul>
         </div>
     </div>
@@ -405,6 +449,8 @@ def home():
                 <select class="player-position">
                     <option value="goalkeeper" ${position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
                     <option value="defender" ${position === 'defender' ? 'selected' : ''}>Defender</option>
+                    <option value="left_wing" ${position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                    <option value="right_wing" ${position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
                     <option value="midfielder" ${position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
                     <option value="forward" ${position === 'forward' ? 'selected' : ''}>Forward</option>
                 </select>
@@ -423,11 +469,11 @@ def home():
                 ['Alex', 'goalkeeper', 8],
                 ['Ben', 'defender', 7],
                 ['Chris', 'defender', 6],
-                ['David', 'defender', 5],
-                ['Eric', 'midfielder', 8],
-                ['Frank', 'midfielder', 7],
-                ['George', 'midfielder', 6],
-                ['Henry', 'midfielder', 5],
+                ['David', 'left_wing', 7],
+                ['Eric', 'right_wing', 6],
+                ['Frank', 'midfielder', 8],
+                ['George', 'midfielder', 7],
+                ['Henry', 'midfielder', 6],
                 ['Ian', 'forward', 8],
                 ['John', 'forward', 6],
                 ['Kevin', 'forward', 5],
@@ -559,7 +605,7 @@ def home():
                         <div class="player-info">
                             <div class="player-name">${player.name}</div>
                             <div class="player-details">
-                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
+                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position.replace('_', ' ')}</span>
                                 • Skill: ${player.skill_level}/10
                             </div>
                         </div>
@@ -573,7 +619,7 @@ def home():
                         <div class="player-info">
                             <div class="player-name">${player.name}</div>
                             <div class="player-details">
-                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position}</span>
+                                <span class="position-badge position-${player.position.substring(0, 3)}">${player.position.replace('_', ' ')}</span>
                                 • Skill: ${player.skill_level}/10
                             </div>
                         </div>
