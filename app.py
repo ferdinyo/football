@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify
 import random
 import math
-from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # This fixes CORS issues
 
 class Player:
     def __init__(self, name, position, skill_level=5):
@@ -464,7 +462,6 @@ def home():
                 return;
             }
             
-            // Use relative URL for the same domain
             fetch('/balance-teams', {
                 method: 'POST',
                 headers: {
