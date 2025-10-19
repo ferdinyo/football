@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import random
 import math
+import traceback
 
 app = Flask(__name__)
 
@@ -316,6 +317,16 @@ def home():
             margin-bottom: 10px;
             line-height: 1.5;
         }
+        
+        .debug-info {
+            background: rgba(255, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -350,6 +361,10 @@ def home():
                     <button class="secondary-btn" onclick="randomizeTeams()">
                         🎲 Random Teams
                     </button>
+                </div>
+                
+                <div class="debug-info" id="debugInfo">
+                    Debug information will appear here
                 </div>
             </div>
             
@@ -390,6 +405,12 @@ def home():
 
     <script>
         let playerCount = 0;
+        
+        function showDebugInfo(message) {
+            const debugElement = document.getElementById('debugInfo');
+            debugElement.textContent = message;
+            debugElement.style.display = 'block';
+        }
         
         function addPlayerField(name = '', position = 'midfielder', skill = '5') {
             playerCount++;
@@ -456,6 +477,7 @@ def home():
         
         function balanceTeams() {
             const players = getPlayersData();
+            showDebugInfo(`Sending ${players.length} players to server...`);
             
             if (players.length < 2) {
                 alert('Please add at least 2 players');
@@ -470,26 +492,32 @@ def home():
                 body: JSON.stringify({ players: players })
             })
             .then(response => {
+                showDebugInfo(`Response status: ${response.status}`);
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    alert(data.error);
+                    showDebugInfo(`Server error: ${data.error}`);
+                    alert('Error: ' + data.error);
                 } else {
+                    showDebugInfo('Success! Teams received from server');
                     displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
                 }
             })
             .catch(error => {
+                const errorMsg = `Fetch error: ${error.message}`;
                 console.error('Error:', error);
-                alert('Error balancing teams. Check console for details.');
+                showDebugInfo(errorMsg);
+                alert('Error balancing teams. Check debug info below.');
             });
         }
         
         function randomizeTeams() {
             const players = getPlayersData();
+            showDebugInfo(`Sending ${players.length} players to server...`);
             
             if (players.length < 2) {
                 alert('Please add at least 2 players');
@@ -504,21 +532,26 @@ def home():
                 body: JSON.stringify({ players: players })
             })
             .then(response => {
+                showDebugInfo(`Response status: ${response.status}`);
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    alert(data.error);
+                    showDebugInfo(`Server error: ${data.error}`);
+                    alert('Error: ' + data.error);
                 } else {
+                    showDebugInfo('Success! Teams received from server');
                     displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
                 }
             })
             .catch(error => {
+                const errorMsg = `Fetch error: ${error.message}`;
                 console.error('Error:', error);
-                alert('Error creating random teams. Check console for details.');
+                showDebugInfo(errorMsg);
+                alert('Error creating random teams. Check debug info below.');
             });
         }
         
@@ -579,14 +612,20 @@ def home():
 @app.route('/balance-teams', methods=['POST'])
 def balance_teams():
     try:
+        print("=== BALANCE TEAMS ENDPOINT CALLED ===")
         data = request.get_json()
+        print(f"Received data: {data}")
+        
         if not data or 'players' not in data:
+            print("No player data received")
             return jsonify({'error': 'No player data received'}), 400
             
         players_data = data['players']
+        print(f"Processing {len(players_data)} players")
         
         players = []
-        for player_data in players_data:
+        for i, player_data in enumerate(players_data):
+            print(f"Player {i}: {player_data}")
             player = Player(
                 name=player_data['name'],
                 position=player_data['position'],
@@ -594,7 +633,9 @@ def balance_teams():
             )
             players.append(player)
         
+        print(f"Created {len(players)} player objects")
         team_a, team_b = TeamBalancer.balance_teams(players)
+        print(f"Balanced into teams: {len(team_a)} vs {len(team_b)}")
         
         # Convert players to dictionaries for JSON serialization
         team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
@@ -603,27 +644,39 @@ def balance_teams():
         strength_a = TeamBalancer.calculate_team_strength(team_a)
         strength_b = TeamBalancer.calculate_team_strength(team_b)
         
-        return jsonify({
+        response = {
             'team_a': team_a_dict,
             'team_b': team_b_dict,
             'strength_a': strength_a,
             'strength_b': strength_b
-        })
+        }
+        
+        print(f"Returning response: {response}")
+        return jsonify(response)
+        
     except Exception as e:
-        print(f"Error in balance_teams: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        error_msg = f"Error in balance_teams: {str(e)}"
+        print(error_msg)
+        print(traceback.format_exc())
+        return jsonify({'error': error_msg}), 500
 
 @app.route('/random-teams', methods=['POST'])
 def random_teams():
     try:
+        print("=== RANDOM TEAMS ENDPOINT CALLED ===")
         data = request.get_json()
+        print(f"Received data: {data}")
+        
         if not data or 'players' not in data:
+            print("No player data received")
             return jsonify({'error': 'No player data received'}), 400
             
         players_data = data['players']
+        print(f"Processing {len(players_data)} players")
         
         players = []
-        for player_data in players_data:
+        for i, player_data in enumerate(players_data):
+            print(f"Player {i}: {player_data}")
             player = Player(
                 name=player_data['name'],
                 position=player_data['position'],
@@ -631,11 +684,13 @@ def random_teams():
             )
             players.append(player)
         
+        print(f"Created {len(players)} player objects")
         # Simple random shuffle
         random.shuffle(players)
         split_point = len(players) // 2
         team_a = players[:split_point]
         team_b = players[split_point:]
+        print(f"Randomized into teams: {len(team_a)} vs {len(team_b)}")
         
         # Convert players to dictionaries for JSON serialization
         team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
@@ -644,15 +699,21 @@ def random_teams():
         strength_a = TeamBalancer.calculate_team_strength(team_a)
         strength_b = TeamBalancer.calculate_team_strength(team_b)
         
-        return jsonify({
+        response = {
             'team_a': team_a_dict,
             'team_b': team_b_dict,
             'strength_a': strength_a,
             'strength_b': strength_b
-        })
+        }
+        
+        print(f"Returning response: {response}")
+        return jsonify(response)
+        
     except Exception as e:
-        print(f"Error in random_teams: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        error_msg = f"Error in random_teams: {str(e)}"
+        print(error_msg)
+        print(traceback.format_exc())
+        return jsonify({'error': error_msg}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
