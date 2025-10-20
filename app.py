@@ -219,6 +219,11 @@ def home():
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Load Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Your app's JavaScript -->
+<script src="your-app.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Football Team Manager</title>
