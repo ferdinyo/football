@@ -1,24 +1,21 @@
 from flask import Flask, request, jsonify
 import random
 import math
-import traceback
 import json
 from datetime import datetime, date
 import os
 import requests
-import jwt
-import time
 
 app = Flask(__name__)
 
-# Supabase configuration - REPLACE WITH YOUR ACTUAL CREDENTIALS
+# Supabase configuration - YOU NEED TO UPDATE THESE!
 SUPABASE_URL = "https://eglrpoztowhvgwoudiwc.supabase.co"  # Replace with your Supabase URL
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnbHJwb3p0b3dodmd3b3VkaXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NzU0MjEsImV4cCI6MjA3NjQ1MTQyMX0.dqf8hintMcgKWSSsmy9TVW6ov7gzF5EdrSjbiVEhADM"  # Replace with your Supabase anon/public key
-SUPABASE_TABLE = "football_data"
+TABLE_NAME = "football_data"
 
 class SupabaseManager:
     @staticmethod
-    def make_request(method, data=None):
+    def make_request(method, data=None, id=None):
         """Make authenticated request to Supabase"""
         headers = {
             'apikey': SUPABASE_KEY,
@@ -27,24 +24,18 @@ class SupabaseManager:
             'Prefer': 'return=representation'
         }
         
-        url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
-        
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers)
+                response = requests.get(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}", headers=headers)
             elif method == 'POST':
-                response = requests.post(url, headers=headers, json=data)
-            elif method == 'PATCH':
-                # For updates, we need to specify the row ID
-                if data and 'id' in data:
-                    update_url = f"{url}?id=eq.{data['id']}"
-                    response = requests.patch(update_url, headers=headers, json=data)
-                else:
-                    # If no ID, try to upsert based on some unique constraint
-                    response = requests.post(url, headers=headers, json=data)
+                response = requests.post(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}", headers=headers, json=data)
+            elif method == 'PATCH' and id:
+                response = requests.patch(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?id=eq.{id}", headers=headers, json=data)
+            elif method == 'DELETE' and id:
+                response = requests.delete(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?id=eq.{id}", headers=headers)
             
-            if response.status_code in [200, 201]:
-                return response.json()
+            if response.status_code in [200, 201, 204]:
+                return response.json() if response.content else True
             else:
                 print(f"Supabase error {response.status_code}: {response.text}")
                 return None
@@ -86,7 +77,7 @@ class SupabaseManager:
             if existing and len(existing) > 0:
                 # Update existing record
                 payload['id'] = existing[0]['id']
-                result = SupabaseManager.make_request('PATCH', payload)
+                result = SupabaseManager.make_request('PATCH', payload, existing[0]['id'])
             else:
                 # Create new record
                 result = SupabaseManager.make_request('POST', payload)
@@ -99,19 +90,24 @@ class SupabaseManager:
 
 # Fallback to file storage if Supabase fails
 def load_data():
-    """Load data with Supabase fallback to file"""
-    data = SupabaseManager.load_data()
-    if data:
-        return data
+    """Load data with Supabase primary, file fallback"""
+    # Try Supabase first
+    supabase_data = SupabaseManager.load_data()
+    if supabase_data:
+        print("Using Supabase storage")
+        return supabase_data
     
     # Fallback to file storage
     try:
         if os.path.exists('football_data.json'):
             with open('football_data.json', 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                print("Using file storage fallback")
+                return data
     except Exception as e:
         print(f"Error loading fallback data: {e}")
     
+    print("Using default data structure")
     return {
         'players': {},
         'games': [],
@@ -120,17 +116,21 @@ def load_data():
 
 def save_data(data):
     """Save data with Supabase primary, file fallback"""
+    # Try Supabase first
     success = SupabaseManager.save_data(data)
-    if not success:
-        print("Supabase save failed, using fallback file storage")
-        try:
-            with open('football_data.json', 'w') as f:
-                json.dump(data, f, indent=2)
-            return True
-        except Exception as e:
-            print(f"Fallback save also failed: {e}")
-            return False
-    return True
+    if success:
+        print("Data saved to Supabase")
+        return True
+    
+    # Fallback to file storage
+    print("Supabase save failed, using file storage fallback")
+    try:
+        with open('football_data.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Fallback save also failed: {e}")
+        return False
 
 class Player:
     def __init__(self, name, position, skill_level=5):
@@ -219,11 +219,6 @@ def home():
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Load Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- Your app's JavaScript -->
-<script src="your-app.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Football Team Manager</title>
@@ -663,6 +658,13 @@ def home():
             border-radius: 10px;
             margin-top: 20px;
         }
+        
+        .config-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -755,6 +757,15 @@ def home():
             <div id="data-management" class="tab-content">
                 <div class="stats-section">
                     <h2>🔧 Data Management</h2>
+                    
+                    <div class="config-section">
+                        <h3>Supabase Configuration</h3>
+                        <p>Current Status: <span id="supabaseStatus">Checking...</span></p>
+                        <div class="buttons">
+                            <button class="secondary-btn" onclick="testSupabase()">Test Supabase Connection</button>
+                        </div>
+                    </div>
+                    
                     <div class="data-management">
                         <h3>Storage Information</h3>
                         <p id="storageInfo">Loading storage information...</p>
@@ -783,172 +794,140 @@ def home():
                 </div>
             </div>
             
-            <!-- Other tabs remain the same as previous version -->
-            <!-- Game Tracker, Player Statistics, Game History tabs -->
-            <!-- ... (content identical to previous version) ... -->
+            <!-- Other tabs would go here (same as before) -->
             
         </div>
     </div>
 
     <script>
-        // ... (JavaScript code remains largely the same as previous version)
-        // Add these new functions for data management:
+        let playerCount = 0;
+        let currentTeams = { team_a: [], team_b: [] };
+        let gameData = { players: {}, games: [], current_players: [] };
         
-        function updateStorageStatus() {
-            const statusElement = document.getElementById('storageStatus');
-            const storageInfoElement = document.getElementById('storageInfo');
+        // Load saved data on startup
+        window.onload = function() {
+            loadGameData();
+            addPlayerField();
+            addPlayerField();
+            document.getElementById('gameDate').valueAsDate = new Date();
+        };
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             
-            if (gameData && gameData.games) {
-                const totalGames = gameData.games.length;
-                const totalPlayers = Object.keys(gameData.players || {}).length;
-                
-                statusElement.innerHTML = `✅ Cloud Storage Active | ${totalGames} Games | ${totalPlayers} Players`;
-                statusElement.className = 'storage-status cloud';
-                
-                storageInfoElement.innerHTML = `
-                    <strong>Current Data Summary:</strong><br>
-                    • Games Recorded: ${totalGames}<br>
-                    • Players Tracked: ${totalPlayers}<br>
-                    • Last Updated: Just now<br>
-                    • Storage: Cloud (Permanent)
-                `;
-            } else {
-                statusElement.innerHTML = '⚠️ Using Local Storage (Data may not persist)';
-                statusElement.className = 'storage-status local';
-                
-                storageInfoElement.innerHTML = `
-                    <strong>Storage Status:</strong><br>
-                    • Currently using browser storage<br>
-                    • Data may be lost between sessions<br>
-                    • Set up cloud storage for permanence
-                `;
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabName === 'player-stats' || tabName === 'game-history' || tabName === 'data-management') {
+                loadGameData();
+                if (tabName === 'player-stats') updatePlayerStats();
+                if (tabName === 'game-history') updateGameHistory();
+                if (tabName === 'data-management') updateStorageStatus();
             }
         }
         
-        function exportData() {
-            const exportData = JSON.stringify(gameData, null, 2);
-            document.getElementById('exportData').value = exportData;
-            document.getElementById('exportSection').classList.remove('hidden');
-        }
-        
-        function importData() {
-            document.getElementById('importSection').classList.remove('hidden');
-        }
-        
-        function copyExportData() {
-            const exportText = document.getElementById('exportData');
-            exportText.select();
-            document.execCommand('copy');
-            alert('Data copied to clipboard!');
-        }
-        
-        function processImport() {
-            const importText = document.getElementById('importData').value;
-            try {
-                const importedData = JSON.parse(importText);
-                
-                if (confirm('This will replace ALL current data. Are you sure?')) {
-                    fetch('/import-data', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(importedData)
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Data imported successfully!');
-                            loadGameData();
-                            cancelImport();
-                        } else {
-                            alert('Error importing data: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Error importing data: ' + error.message);
-                    });
-                }
-            } catch (e) {
-                alert('Invalid data format. Please check your exported data.');
-            }
-        }
-        
-        function cancelImport() {
-            document.getElementById('importSection').classList.add('hidden');
-            document.getElementById('importData').value = '';
-        }
-        
-        function clearAllData() {
-            if (confirm('🚨 DANGER! This will permanently delete ALL data including games, players, and statistics. This cannot be undone!')) {
-                if (confirm('Are you absolutely sure? This will delete everything!')) {
-                    fetch('/clear-data', {
-                        method: 'POST'
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('All data cleared successfully!');
-                            loadGameData();
-                        } else {
-                            alert('Error clearing data: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Error clearing data: ' + error.message);
-                    });
-                }
-            }
-        }
-        
-        // Update the loadGameData function to call updateStorageStatus
         function loadGameData() {
             fetch('/load-data')
                 .then(response => response.json())
                 .then(data => {
                     gameData = data;
                     updateGameTeamsDisplay();
-                    updateStorageStatus(); // Add this line
+                    updateStorageStatus();
                 })
                 .catch(error => {
                     console.error('Error loading game data:', error);
                 });
         }
+        
+        function updateStorageStatus() {
+            const statusElement = document.getElementById('storageStatus');
+            const storageInfoElement = document.getElementById('storageInfo');
+            const supabaseStatusElement = document.getElementById('supabaseStatus');
+            
+            fetch('/storage-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.using_supabase) {
+                        statusElement.innerHTML = `✅ Cloud Storage Active | ${data.total_games} Games | ${data.total_players} Players`;
+                        statusElement.className = 'storage-status cloud';
+                        supabaseStatusElement.innerHTML = '✅ Connected';
+                        supabaseStatusElement.style.color = '#4CAF50';
+                    } else {
+                        statusElement.innerHTML = `⚠️ Using Local Storage | ${data.total_games} Games | ${data.total_players} Players`;
+                        statusElement.className = 'storage-status local';
+                        supabaseStatusElement.innerHTML = '❌ Not Connected (Using Local Fallback)';
+                        supabaseStatusElement.style.color = '#ff9800';
+                    }
+                    
+                    storageInfoElement.innerHTML = `
+                        <strong>Current Data Summary:</strong><br>
+                        • Games Recorded: ${data.total_games}<br>
+                        • Players Tracked: ${data.total_players}<br>
+                        • Storage: ${data.using_supabase ? 'Cloud (Supabase)' : 'Local File'}<br>
+                        • Last Updated: Just now
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error checking storage status:', error);
+                });
+        }
+        
+        function testSupabase() {
+            fetch('/test-supabase')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.connected) {
+                        alert('✅ Supabase connection successful!');
+                    } else {
+                        alert('❌ Supabase connection failed: ' + data.error);
+                    }
+                    updateStorageStatus();
+                })
+                .catch(error => {
+                    alert('Error testing Supabase connection');
+                });
+        }
+        
+        // ... include all your existing JavaScript functions (addPlayerField, balanceTeams, etc.)
+        // These remain the same as in the previous versions
+        
     </script>
 </body>
 </html>
     '''
 
-# Add these new routes for data management
-@app.route('/import-data', methods=['POST'])
-def import_data():
-    """Import data from JSON"""
-    try:
-        imported_data = request.get_json()
-        if save_data(imported_data):
-            return jsonify({'success': True})
-        else:
-            return jsonify({'error': 'Failed to save imported data'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# Add storage status route
+@app.route('/storage-status')
+def storage_status():
+    data = load_data()
+    total_games = len(data.get('games', []))
+    total_players = len(data.get('players', {}))
+    
+    # Check if we're using Supabase by making a test request
+    test_data = SupabaseManager.load_data()
+    using_supabase = test_data is not None and 'players' in test_data
+    
+    return jsonify({
+        'using_supabase': using_supabase,
+        'total_games': total_games,
+        'total_players': total_players
+    })
 
-@app.route('/clear-data', methods=['POST'])
-def clear_data():
-    """Clear all data"""
+@app.route('/test-supabase')
+def test_supabase():
     try:
-        empty_data = {
-            'players': {},
-            'games': [],
-            'current_players': []
-        }
-        if save_data(empty_data):
-            return jsonify({'success': True})
+        test_data = SupabaseManager.load_data()
+        if test_data is not None:
+            return jsonify({'connected': True})
         else:
-            return jsonify({'error': 'Failed to clear data'}), 500
+            return jsonify({'connected': False, 'error': 'No data returned from Supabase'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'connected': False, 'error': str(e)})
 
-# Keep all the existing routes from previous version
+# Add all your existing routes (load-data, save-players, record-game, balance-teams, etc.)
+# These remain the same as in previous versions
+
 @app.route('/load-data', methods=['GET'])
 def load_data_route():
     try:
@@ -1035,16 +1014,104 @@ def record_game():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Keep the balance-teams and random-teams routes
 @app.route('/balance-teams', methods=['POST'])
 def balance_teams():
-    # ... (same as before)
-    pass
+    try:
+        data = request.get_json()
+        players_data = data['players']
+        
+        players = []
+        for player_data in players_data:
+            player = Player(
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
+            )
+            players.append(player)
+        
+        team_a, team_b = TeamBalancer.balance_teams(players)
+        
+        team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
+        team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
+        
+        strength_a = TeamBalancer.calculate_team_strength(team_a)
+        strength_b = TeamBalancer.calculate_team_strength(team_b)
+        
+        response = {
+            'team_a': team_a_dict,
+            'team_b': team_b_dict,
+            'strength_a': strength_a,
+            'strength_b': strength_b
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/random-teams', methods=['POST'])
 def random_teams():
-    # ... (same as before)
-    pass
+    try:
+        data = request.get_json()
+        players_data = data['players']
+        
+        players = []
+        for player_data in players_data:
+            player = Player(
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
+            )
+            players.append(player)
+        
+        random.shuffle(players)
+        split_point = len(players) // 2
+        team_a = players[:split_point]
+        team_b = players[split_point:]
+        
+        team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
+        team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
+        
+        strength_a = TeamBalancer.calculate_team_strength(team_a)
+        strength_b = TeamBalancer.calculate_team_strength(team_b)
+        
+        response = {
+            'team_a': team_a_dict,
+            'team_b': team_b_dict,
+            'strength_a': strength_a,
+            'strength_b': strength_b
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/import-data', methods=['POST'])
+def import_data():
+    try:
+        imported_data = request.get_json()
+        if save_data(imported_data):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to save imported data'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clear-data', methods=['POST'])
+def clear_data():
+    try:
+        empty_data = {
+            'players': {},
+            'games': [],
+            'current_players': []
+        }
+        if save_data(empty_data):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to clear data'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
