@@ -221,680 +221,266 @@ def home():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Football Team Manager</title>
+    <title>Team Splitter App</title>
     <style>
-        * {
+        body {
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
         }
-        
-        body {
-            background: linear-gradient(135deg, #1a2a6c, #2a5298);
-            color: white;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
+
         .container {
-            max-width: 1600px;
-            margin: 0 auto;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 30px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
+
         h1 {
-            font-size: 2.8rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .storage-status {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px 20px;
-            border-radius: 10px;
-            margin: 10px 0;
             text-align: center;
-            font-size: 0.9rem;
-        }
-        
-        .storage-status.cloud {
-            background: rgba(76, 175, 80, 0.2);
-            border: 1px solid rgba(76, 175, 80, 0.5);
-        }
-        
-        .storage-status.local {
-            background: rgba(255, 193, 7, 0.2);
-            border: 1px solid rgba(255, 193, 7, 0.5);
-        }
-        
-        .tab-container {
-            margin-bottom: 30px;
-        }
-        
-        .tabs {
-            display: flex;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 5px;
             margin-bottom: 20px;
         }
-        
+
+        /* Tabs */
+        .tab-container {
+            display: flex;
+            justify-content: space-around;
+            border-bottom: 2px solid #ccc;
+            margin-bottom: 20px;
+        }
+
         .tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
+            padding: 10px 20px;
             cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s;
             font-weight: bold;
         }
-        
+
         .tab.active {
-            background: rgba(255, 255, 255, 0.2);
+            border-bottom: 3px solid #007bff;
+            color: #007bff;
         }
-        
+
         .tab-content {
             display: none;
         }
-        
+
         .tab-content.active {
             display: block;
         }
-        
-        .app-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        
-        @media (max-width: 1200px) {
-            .app-container {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .input-section, .teams-section, .stats-section {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        }
-        
-        .stats-section {
-            grid-column: 1 / -1;
-        }
-        
-        h2 {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-            color: #FFD700;
-        }
-        
-        .player-form {
-            display: grid;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        
+
+        /* Forms and Buttons */
         .form-row {
-            display: grid;
-            grid-template-columns: 2fr 1.5fr 1fr auto;
+            display: flex;
             gap: 10px;
-            align-items: center;
+            margin-bottom: 10px;
         }
-        
-        input, select, textarea {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            font-size: 1rem;
-        }
-        
-        .skill-input {
-            text-align: center;
-        }
-        
-        .remove-btn {
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 8px 12px;
+
+        input, select, button {
+            padding: 8px;
             border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
+            border: 1px solid #ccc;
         }
-        
-        .remove-btn:hover {
-            background: #cc0000;
-        }
-        
-        .buttons {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        
+
         button {
-            flex: 1;
-            background: linear-gradient(45deg, #4CAF50, #45a049);
+            background-color: #007bff;
             color: white;
-            border: none;
-            padding: 15px;
-            font-size: 1.1rem;
-            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s;
-            font-weight: bold;
+            border: none;
         }
-        
+
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background-color: #0056b3;
         }
-        
-        .secondary-btn {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
-        }
-        
-        .warning-btn {
-            background: linear-gradient(45deg, #ff9800, #f57c00);
-        }
-        
-        .danger-btn {
-            background: linear-gradient(45deg, #f44336, #d32f2f);
-        }
-        
-        .teams-display {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .team {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .team-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .team-strength {
-            background: rgba(255, 215, 0, 0.2);
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.9rem;
-        }
-        
-        .player-list {
-            list-style: none;
-        }
-        
-        .player-item {
-            background: rgba(255, 255, 255, 0.1);
-            margin: 8px 0;
-            padding: 12px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: transform 0.2s;
-        }
-        
-        .player-item:hover {
-            transform: translateX(5px);
-            background: rgba(255, 255, 255, 0.15);
-        }
-        
-        .player-info {
-            flex: 1;
-        }
-        
-        .player-name {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        
-        .player-details {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 4px;
-        }
-        
-        .position-badge {
-            background: rgba(76, 175, 80, 0.3);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-        }
-        
-        .position-gk { background: rgba(255, 87, 34, 0.3); }
-        .position-def { background: rgba(33, 150, 243, 0.3); }
-        .position-lw { background: rgba(156, 39, 176, 0.3); }
-        .position-rw { background: rgba(255, 193, 7, 0.3); }
-        .position-mid { background: rgba(76, 175, 80, 0.3); }
-        .position-fwd { background: rgba(244, 67, 54, 0.3); }
-        
-        .balance-indicator {
-            text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 1.1rem;
-        }
-        
-        .balanced { color: #4CAF50; }
-        .unbalanced { color: #ff4444; }
-        
-        .score-input {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 15px;
-            align-items: center;
-            margin: 20px 0;
-        }
-        
-        .score-team {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        
-        .vs {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #FFD700;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+
+        .results, .game-history {
             margin-top: 20px;
         }
-        
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        .team-container {
+            display: flex;
+            justify-content: space-around;
         }
-        
-        .player-stats {
-            max-height: 500px;
-            overflow-y: auto;
+
+        .team {
+            width: 45%;
         }
-        
-        .stats-table {
-            width: 100%;
-            border-collapse: collapse;
+
+        .team h3 {
+            text-align: center;
+        }
+
+        .export-import {
+            display: flex;
+            gap: 10px;
             margin-top: 10px;
         }
-        
-        .stats-table th, .stats-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        textarea {
+            width: 100%;
+            height: 200px;
         }
-        
-        .stats-table th {
-            background: rgba(255, 255, 255, 0.1);
-            font-weight: bold;
-            color: #FFD700;
-        }
-        
-        .stats-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .win-rate {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        
-        .win-rate.high { background: rgba(76, 175, 80, 0.3); }
-        .win-rate.medium { background: rgba(255, 193, 7, 0.3); }
-        .win-rate.low { background: rgba(244, 67, 54, 0.3); }
-        
-        .game-history {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .game-item {
-            background: rgba(255, 255, 255, 0.05);
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .game-item.lost {
-            border-left-color: #f44336;
-        }
-        
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .game-score {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #FFD700;
-        }
-        
-        .game-date {
-            opacity: 0.8;
-            font-size: 0.9rem;
-        }
-        
-        .instructions {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 25px;
-            border-radius: 15px;
-            margin-top: 30px;
-        }
-        
-        .instructions h3 {
-            color: #FFD700;
-            margin-bottom: 15px;
-        }
-        
-        .instructions ul {
-            padding-left: 20px;
-        }
-        
-        .instructions li {
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-        
-        .position-weights {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-        
-        .weight-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .data-management {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        
-        .config-section {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 10px;
+
+        hr {
             margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>⚽ Football Team Manager</h1>
-            <p>Team splitting, game tracking, and player performance analytics</p>
-            <div id="storageStatus" class="storage-status">
-                Checking storage status...
-            </div>
-        </header>
-        
+        <h1>Team Splitter App</h1>
+
+        <!-- Tabs -->
         <div class="tab-container">
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('team-splitter')">Team Splitter</div>
-                <div class="tab" onclick="switchTab('game-tracker')">Game Tracker</div>
-                <div class="tab" onclick="switchTab('player-stats')">Player Statistics</div>
-                <div class="tab" onclick="switchTab('game-history')">Game History</div>
-                <div class="tab" onclick="switchTab('data-management')">Data Management</div>
-            </div>
-            
-            <!-- Team Splitter Tab -->
-            <div id="team-splitter" class="tab-content active">
-                <div class="app-container">
-                    <div class="input-section">
-                        <h2>🏃 Add Players</h2>
-                        <div class="player-form" id="playerForm">
-                            <div class="form-row">
-                                <strong>Player Name</strong>
-                                <strong>Position</strong>
-                                <strong>Skill (1-10)</strong>
-                                <span></span>
-                            </div>
-                        </div>
-                        
-                        <div class="buttons">
-                            <button onclick="addPlayerField()">➕ Add Player</button>
-                            <button class="secondary-btn" onclick="addSampleTeam()">🎯 Add Sample Team</button>
-                            <button class="warning-btn" onclick="loadSavedPlayers()">📁 Load Saved Players</button>
-                        </div>
-                        
-                        <div class="buttons">
-                            <button onclick="balanceTeams()" style="background:linear-gradient(45deg,#FF9800,#F57C00)">
-                                ⚖️ Balance Teams
-                            </button>
-                            <button class="secondary-btn" onclick="randomizeTeams()">
-                                🎲 Random Teams
-                            </button>
-                            <button class="warning-btn" onclick="saveCurrentPlayers()">
-                                💾 Save Players
-                            </button>
-                        </div>
-                        
-                        <div class="position-weights">
-                            <h4>Position Weights:</h4>
-                            <div class="weight-item"><span>Goalkeeper:</span> <strong>3.0x</strong></div>
-                            <div class="weight-item"><span>Midfielder:</span> <strong>1.6x</strong></div>
-                            <div class="weight-item"><span>Forward:</span> <strong>1.5x</strong></div>
-                            <div class="weight-item"><span>Defender:</span> <strong>1.4x</strong></div>
-                            <div class="weight-item"><span>Left/Right Wing:</span> <strong>1.3x</strong></div>
-                        </div>
-                    </div>
-                    
-                    <div class="teams-section">
-                        <h2>📊 Teams</h2>
-                        <div id="balanceIndicator" class="balance-indicator">
-                            Click "Balance Teams" to create balanced teams
-                        </div>
-                        <div class="teams-display">
-                            <div class="team">
-                                <div class="team-header">
-                                    <h3>🔵 Team A</h3>
-                                    <span id="teamAStrength" class="team-strength">Strength: 0</span>
-                                </div>
-                                <ul id="teamA" class="player-list"></ul>
-                            </div>
-                            <div class="team">
-                                <div class="team-header">
-                                    <h3>🔴 Team B</h3>
-                                    <span id="teamBStrength" class="team-strength">Strength: 0</span>
-                                </div>
-                                <ul id="teamB" class="player-list"></ul>
-                            </div>
-                        </div>
-                    </div>
+            <div class="tab active" onclick="switchTab(this, 'team-splitter')">Team Splitter</div>
+            <div class="tab" onclick="switchTab(this, 'game-tracker')">Game Tracker</div>
+            <div class="tab" onclick="switchTab(this, 'player-stats')">Player Statistics</div>
+            <div class="tab" onclick="switchTab(this, 'game-history')">Game History</div>
+            <div class="tab" onclick="switchTab(this, 'data-management')">Data Management</div>
+        </div>
+
+        <!-- TEAM SPLITTER -->
+        <div id="team-splitter" class="tab-content active">
+            <h2>Team Splitter</h2>
+
+            <div id="playerForm">
+                <div class="form-row">
+                    <input type="text" placeholder="Player Name">
+                    <select>
+                        <option value="">Position</option>
+                        <option value="Forward">Forward</option>
+                        <option value="Midfielder">Midfielder</option>
+                        <option value="Defender">Defender</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                    </select>
+                    <input type="number" min="1" max="10" placeholder="Skill (1-10)">
                 </div>
             </div>
-            
-            <!-- Data Management Tab -->
-            <div id="data-management" class="tab-content">
-                <div class="stats-section">
-                    <h2>🔧 Data Management</h2>
-                    
-                    <div class="config-section">
-                        <h3>Supabase Configuration</h3>
-                        <p>Current Status: <span id="supabaseStatus">Checking...</span></p>
-                        <div class="buttons">
-                            <button class="secondary-btn" onclick="testSupabase()">Test Supabase Connection</button>
-                        </div>
-                    </div>
-                    
-                    <div class="data-management">
-                        <h3>Storage Information</h3>
-                        <p id="storageInfo">Loading storage information...</p>
-                        
-                        <div class="buttons">
-                            <button class="secondary-btn" onclick="exportData()">📤 Export Data</button>
-                            <button class="warning-btn" onclick="importData()">📥 Import Data</button>
-                            <button class="danger-btn" onclick="clearAllData()">🗑️ Clear All Data</button>
-                        </div>
-                        
-                        <div id="exportSection" class="hidden">
-                            <h4>Export Data</h4>
-                            <textarea id="exportData" readonly style="width: 100%; height: 200px; margin: 10px 0;"></textarea>
-                            <button onclick="copyExportData()">📋 Copy to Clipboard</button>
-                        </div>
-                        
-                        <div id="importSection" class="hidden">
-                            <h4>Import Data</h4>
-                            <textarea id="importData" placeholder="Paste your exported data here" style="width: 100%; height: 200px; margin: 10px 0;"></textarea>
-                            <div class="buttons">
-                                <button onclick="processImport()">✅ Import Data</button>
-                                <button class="secondary-btn" onclick="cancelImport()">❌ Cancel</button>
-                            </div>
-                        </div>
-                    </div>
+
+            <button onclick="addPlayerField()">➕ Add Player</button>
+            <button onclick="addSampleTeam()">🧩 Add Sample Team</button>
+            <button onclick="loadSavedPlayers()">📂 Load Saved Players</button>
+            <button onclick="balanceTeams()">⚖️ Balance Teams</button>
+            <button onclick="randomizeTeams()">🎲 Random Teams</button>
+            <button onclick="saveCurrentPlayers()">💾 Save Players</button>
+
+            <div class="results">
+                <h3>Team Results</h3>
+                <div class="team-container">
+                    <div class="team" id="teamA"><h3>Team A</h3></div>
+                    <div class="team" id="teamB"><h3>Team B</h3></div>
                 </div>
+                <div id="teamStats"></div>
             </div>
-            
-            <!-- Other tabs would go here (same as before) -->
-            
+        </div>
+
+        <!-- GAME TRACKER -->
+        <div id="game-tracker" class="tab-content">
+            <h2>Game Tracker</h2>
+            <form id="gameForm">
+                <label>Team A Score:</label>
+                <input type="number" id="scoreA" min="0">
+                <label>Team B Score:</label>
+                <input type="number" id="scoreB" min="0">
+                <button type="button" onclick="saveGameResult()">Save Game Result</button>
+            </form>
+        </div>
+
+        <!-- PLAYER STATS -->
+        <div id="player-stats" class="tab-content">
+            <h2>Player Statistics</h2>
+            <div id="playerStatsContainer"></div>
+        </div>
+
+        <!-- GAME HISTORY -->
+        <div id="game-history" class="tab-content">
+            <h2>Game History</h2>
+            <div id="gameHistoryContainer"></div>
+        </div>
+
+        <!-- DATA MANAGEMENT -->
+        <div id="data-management" class="tab-content">
+            <h2>Data Management</h2>
+            <div class="export-import">
+                <button onclick="exportData()">📤 Export Data</button>
+                <button onclick="importData()">📥 Import Data</button>
+                <button onclick="clearAllData()">🧹 Clear All Data</button>
+            </div>
+            <textarea id="dataArea" placeholder="Exported/Imported Data"></textarea>
         </div>
     </div>
 
     <script>
-        let playerCount = 0;
-        let currentTeams = { team_a: [], team_b: [] };
-        let gameData = { players: {}, games: [], current_players: [] };
-        
-        // Load saved data on startup
-        window.onload = function() {
-            loadGameData();
-            addPlayerField();
-            addPlayerField();
-            document.getElementById('gameDate').valueAsDate = new Date();
-        };
-        
-        function switchTab(tabName) {
+        /* ✅ Fixed Tab Switching Function */
+        function switchTab(tabElement, tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            
+
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-            
-            if (tabName === 'player-stats' || tabName === 'game-history' || tabName === 'data-management') {
-                loadGameData();
-                if (tabName === 'player-stats') updatePlayerStats();
-                if (tabName === 'game-history') updateGameHistory();
-                if (tabName === 'data-management') updateStorageStatus();
-            }
+            tabElement.classList.add('active');
         }
-        
-        function loadGameData() {
-            fetch('/load-data')
-                .then(response => response.json())
-                .then(data => {
-                    gameData = data;
-                    updateGameTeamsDisplay();
-                    updateStorageStatus();
-                })
-                .catch(error => {
-                    console.error('Error loading game data:', error);
-                });
+
+        /* 🧩 Placeholder JavaScript Functions — these need backend linkage */
+        function addPlayerField() {
+            const playerForm = document.getElementById('playerForm');
+            const row = document.createElement('div');
+            row.className = 'form-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Player Name">
+                <select>
+                    <option value="">Position</option>
+                    <option value="Forward">Forward</option>
+                    <option value="Midfielder">Midfielder</option>
+                    <option value="Defender">Defender</option>
+                    <option value="Goalkeeper">Goalkeeper</option>
+                </select>
+                <input type="number" min="1" max="10" placeholder="Skill (1-10)">
+            `;
+            playerForm.appendChild(row);
         }
-        
-        function updateStorageStatus() {
-            const statusElement = document.getElementById('storageStatus');
-            const storageInfoElement = document.getElementById('storageInfo');
-            const supabaseStatusElement = document.getElementById('supabaseStatus');
-            
-            fetch('/storage-status')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.using_supabase) {
-                        statusElement.innerHTML = `✅ Cloud Storage Active | ${data.total_games} Games | ${data.total_players} Players`;
-                        statusElement.className = 'storage-status cloud';
-                        supabaseStatusElement.innerHTML = '✅ Connected';
-                        supabaseStatusElement.style.color = '#4CAF50';
-                    } else {
-                        statusElement.innerHTML = `⚠️ Using Local Storage | ${data.total_games} Games | ${data.total_players} Players`;
-                        statusElement.className = 'storage-status local';
-                        supabaseStatusElement.innerHTML = '❌ Not Connected (Using Local Fallback)';
-                        supabaseStatusElement.style.color = '#ff9800';
-                    }
-                    
-                    storageInfoElement.innerHTML = `
-                        <strong>Current Data Summary:</strong><br>
-                        • Games Recorded: ${data.total_games}<br>
-                        • Players Tracked: ${data.total_players}<br>
-                        • Storage: ${data.using_supabase ? 'Cloud (Supabase)' : 'Local File'}<br>
-                        • Last Updated: Just now
-                    `;
-                })
-                .catch(error => {
-                    console.error('Error checking storage status:', error);
-                });
+
+        function balanceTeams() {
+            alert("⚖️ Balancing Teams... (function placeholder)");
         }
-        
-        function testSupabase() {
-            fetch('/test-supabase')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.connected) {
-                        alert('✅ Supabase connection successful!');
-                    } else {
-                        alert('❌ Supabase connection failed: ' + data.error);
-                    }
-                    updateStorageStatus();
-                })
-                .catch(error => {
-                    alert('Error testing Supabase connection');
-                });
+
+        function randomizeTeams() {
+            alert("🎲 Randomizing Teams... (function placeholder)");
         }
-        
-        // ... include all your existing JavaScript functions (addPlayerField, balanceTeams, etc.)
-        // These remain the same as in the previous versions
-        
+
+        function saveCurrentPlayers() {
+            alert("💾 Saving Players... (function placeholder)");
+        }
+
+        function addSampleTeam() {
+            alert("🧩 Adding Sample Team... (function placeholder)");
+        }
+
+        function loadSavedPlayers() {
+            alert("📂 Loading Saved Players... (function placeholder)");
+        }
+
+        function saveGameResult() {
+            alert("🏁 Game result saved! (function placeholder)");
+        }
+
+        function exportData() {
+            alert("📤 Exporting Data... (function placeholder)");
+        }
+
+        function importData() {
+            alert("📥 Importing Data... (function placeholder)");
+        }
+
+        function clearAllData() {
+            alert("🧹 Clearing Data... (function placeholder)");
+        }
     </script>
 </body>
 </html>
+
     '''
 
 # Add storage status route
