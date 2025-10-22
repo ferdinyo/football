@@ -16,13 +16,71 @@ logger = logging.getLogger(__name__)
 
 # Google Sheets configuration
 SHEET_NAME = "Football Team Manager"  # Name of your Google Sheet
-CREDENTIALS_FILE = "credentials.json"  # You'll need to upload this to Render.com
 
 # Define the scope
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
+
+def get_google_credentials():
+    """Get Google credentials from environment variables"""
+    try:
+        # Option 1: Full JSON from environment variable
+        if os.environ.get('GOOGLE_CREDENTIALS_JSON'):
+            credentials_json = os.environ['GOOGLE_CREDENTIALS_JSON']
+            if isinstance(credentials_json, str):
+                credentials_dict = json.loads(credentials_json)
+            else:
+                credentials_dict = credentials_json
+            return Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+        
+        # Option 2: Individual environment variables
+        elif os.environ.get('GOOGLE_CLIENT_EMAIL') and os.environ.get('GOOGLE_PRIVATE_KEY'):
+            credentials_dict = {
+                "type": "service_account",
+                "project_id": os.environ.get('GOOGLE_PROJECT_ID', ''),
+                "private_key_id": os.environ.get('GOOGLE_PRIVATE_KEY_ID', ''),
+                "private_key": os.environ.get('GOOGLE_PRIVATE_KEY', '').replace('\\n', '\n'),
+                "client_email": os.environ.get('GOOGLE_CLIENT_EMAIL', ''),
+                "client_id": os.environ.get('GOOGLE_CLIENT_ID', ''),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+            }
+            return Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+        
+        # Option 3: Fallback to credentials file (for local development)
+        elif os.path.exists("credentials.json"):
+            return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+        
+        else:
+            logger.error("No Google credentials found in environment variables or credentials.json")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error loading Google credentials: {str(e)}")
+        return None
+
+# Initialize Google Sheets client
+def init_google_sheets():
+    """Initialize Google Sheets client with credentials"""
+    try:
+        creds = get_google_credentials()
+        if not creds:
+            logger.error("Failed to get Google credentials")
+            return None
+            
+        client = gspread.authorize(creds)
+        logger.info("Successfully authenticated with Google Sheets API")
+        return client
+        
+    except Exception as e:
+        logger.error(f"Error initializing Google Sheets: {str(e)}")
+        return None
+
+# Initialize the client
+sheets_client = init_google_sheets()
 
 class GoogleSheetsManager:
     def __init__(self):
