@@ -14,120 +14,21 @@ SUPABASE_URL = "https://eglrpoztowhvgwoudiwc.supabase.co"  # Replace with your S
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnbHJwb3p0b3dodmd3b3VkaXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NzU0MjEsImV4cCI6MjA3NjQ1MTQyMX0.dqf8hintMcgKWSSsmy9TVW6ov7gzF5EdrSjbiVEhADM"  # Replace with your Supabase anon/public key
 TABLE_NAME = "football_data"
 
-class SupabaseManager:
-    @staticmethod
-    def make_request(method, data=None, id=None):
-        """Make authenticated request to Supabase"""
-        headers = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': f'Bearer {SUPABASE_KEY}',
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-        }
-        
-        try:
-            url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}"
-            if method == 'GET':
-                if id:
-                    response = requests.get(f"{url}?id=eq.{id}", headers=headers)
-                else:
-                    response = requests.get(url, headers=headers)
-            elif method == 'POST':
-                response = requests.post(url, headers=headers, json=data)
-            elif method == 'PATCH' and id:
-                response = requests.patch(f"{url}?id=eq.{id}", headers=headers, json=data)
-            elif method == 'DELETE' and id:
-                response = requests.delete(f"{url}?id=eq.{id}", headers=headers)
-            else:
-                return None
-            
-            print(f"Supabase {method} response status: {response.status_code}")
-            
-            if response.status_code in [200, 201, 204]:
-                return response.json() if response.content else True
-            else:
-                print(f"Supabase error {response.status_code}: {response.text}")
-                return None
-                
-        except Exception as e:
-            print(f"Supabase request error: {e}")
-            return None
-    
-    @staticmethod
-    def load_data():
-        """Load data from Supabase"""
-        try:
-            result = SupabaseManager.make_request('GET')
-            print(f"Supabase load result: {result}")
-            
-            if result and len(result) > 0:
-                # Return the first row's data
-                data = result[0].get('data', {})
-                print(f"Loaded data from Supabase: {len(data.get('games', []))} games, {len(data.get('players', {}))} players")
-                return data
-        except Exception as e:
-            print(f"Error loading from Supabase: {e}")
-        
-        print("No data found in Supabase, returning default structure")
-        # Return default structure if no data exists
-        return {
-            'players': {},
-            'games': [],
-            'current_players': []
-        }
-    
-    @staticmethod
-    def save_data(data):
-        """Save data to Supabase"""
-        try:
-            # First, try to get existing records
-            existing = SupabaseManager.make_request('GET')
-            print(f"Existing records: {existing}")
-            
-            payload = {
-                'data': data,
-                'updated_at': datetime.now().isoformat()
-            }
-            
-            if existing and len(existing) > 0:
-                # Update existing record - use the first record's ID
-                record_id = existing[0]['id']
-                print(f"Updating existing record with ID: {record_id}")
-                result = SupabaseManager.make_request('PATCH', payload, record_id)
-            else:
-                # Create new record
-                print("Creating new record in Supabase")
-                result = SupabaseManager.make_request('POST', payload)
-            
-            print(f"Save result: {result}")
-            return result is not None
-            
-        except Exception as e:
-            print(f"Error saving to Supabase: {e}")
-            return False
+# Simple file-based storage - more reliable for Render.com
+DATA_FILE = 'football_data.json'
 
-# Enhanced file storage with better error handling
 def load_data():
-    """Load data with Supabase primary, file fallback"""
-    # Try Supabase first
-    print("Attempting to load from Supabase...")
-    supabase_data = SupabaseManager.load_data()
-    if supabase_data and (supabase_data.get('players') or supabase_data.get('games')):
-        print("✓ Using Supabase storage")
-        return supabase_data
-    
-    # Fallback to file storage
-    print("Falling back to file storage...")
+    """Load data from JSON file"""
     try:
-        if os.path.exists('football_data.json'):
-            with open('football_data.json', 'r') as f:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r') as f:
                 data = json.load(f)
-                print("✓ Using file storage fallback")
+                print(f"✓ Loaded data: {len(data.get('games', []))} games, {len(data.get('players', {}))} players")
                 return data
     except Exception as e:
-        print(f"✗ Error loading fallback data: {e}")
+        print(f"✗ Error loading data: {e}")
     
-    print("✗ Using default data structure")
+    print("✓ Using default data structure")
     return {
         'players': {},
         'games': [],
@@ -135,25 +36,14 @@ def load_data():
     }
 
 def save_data(data):
-    """Save data with Supabase primary, file fallback"""
-    print(f"Saving data: {len(data.get('games', []))} games, {len(data.get('players', {}))} players")
-    
-    # Try Supabase first
-    print("Attempting to save to Supabase...")
-    success = SupabaseManager.save_data(data)
-    if success:
-        print("✓ Data saved to Supabase")
-        return True
-    
-    # Fallback to file storage
-    print("✗ Supabase save failed, using file storage fallback")
+    """Save data to JSON file"""
     try:
-        with open('football_data.json', 'w') as f:
+        with open(DATA_FILE, 'w') as f:
             json.dump(data, f, indent=2)
-        print("✓ Data saved to local file")
+        print(f"✓ Data saved: {len(data.get('games', []))} games, {len(data.get('players', {}))} players")
         return True
     except Exception as e:
-        print(f"✗ Fallback save also failed: {e}")
+        print(f"✗ Error saving data: {e}")
         return False
 
 class Player:
@@ -247,7 +137,6 @@ def home():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Football Team Manager</title>
     <style>
-        /* Your existing CSS remains the same */
         * {
             margin: 0;
             padding: 0;
@@ -283,27 +172,13 @@ def home():
         }
         
         .storage-status {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(76, 175, 80, 0.2);
             padding: 10px 20px;
             border-radius: 10px;
             margin: 10px 0;
             text-align: center;
             font-size: 0.9rem;
-        }
-        
-        .storage-status.cloud {
-            background: rgba(76, 175, 80, 0.2);
             border: 1px solid rgba(76, 175, 80, 0.5);
-        }
-        
-        .storage-status.local {
-            background: rgba(255, 193, 7, 0.2);
-            border: 1px solid rgba(255, 193, 7, 0.5);
-        }
-        
-        .storage-status.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 1px solid rgba(244, 67, 54, 0.5);
         }
         
         .tab-container {
@@ -415,6 +290,7 @@ def home():
             display: flex;
             gap: 10px;
             margin: 20px 0;
+            flex-wrap: wrap;
         }
         
         button {
@@ -428,6 +304,7 @@ def home():
             cursor: pointer;
             transition: all 0.3s;
             font-weight: bold;
+            min-width: 150px;
         }
         
         button:hover {
@@ -696,13 +573,20 @@ def home():
             margin: 20px 0;
         }
         
-        .debug-info {
-            background: rgba(255, 0, 0, 0.1);
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
             padding: 10px;
             border-radius: 5px;
             margin: 10px 0;
-            font-family: monospace;
-            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
         }
     </style>
 </head>
@@ -712,7 +596,7 @@ def home():
             <h1>⚽ Football Team Manager</h1>
             <p>Team splitting, game tracking, and player performance analytics</p>
             <div id="storageStatus" class="storage-status">
-                Checking storage status...
+                ✅ Local Storage Active | Loading...
             </div>
         </header>
         
@@ -886,15 +770,6 @@ def home():
                 <div class="stats-section">
                     <h2>🔧 Data Management</h2>
                     
-                    <div class="config-section">
-                        <h3>Supabase Configuration</h3>
-                        <p>Current Status: <span id="supabaseStatus">Checking...</span></p>
-                        <div class="buttons">
-                            <button class="secondary-btn" onclick="testSupabase()">Test Supabase Connection</button>
-                            <button class="warning-btn" onclick="forceLocalStorage()">🔄 Force Local Storage</button>
-                        </div>
-                    </div>
-                    
                     <div class="data-management">
                         <h3>Storage Information</h3>
                         <p id="storageInfo">Loading storage information...</p>
@@ -919,11 +794,6 @@ def home():
                                 <button class="secondary-btn" onclick="cancelImport()">❌ Cancel</button>
                             </div>
                         </div>
-                        
-                        <div id="debugSection" class="hidden">
-                            <h4>Debug Information</h4>
-                            <div id="debugInfo" class="debug-info"></div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -934,7 +804,6 @@ def home():
         let playerCount = 0;
         let currentTeams = { team_a: [], team_b: [] };
         let gameData = { players: {}, games: [], current_players: [] };
-        let useLocalStorage = false;
         
         // Load saved data on startup
         window.onload = function() {
@@ -942,6 +811,7 @@ def home():
             addPlayerField();
             addPlayerField();
             document.getElementById('gameDate').valueAsDate = new Date();
+            updateStorageStatus();
         };
         
         function switchTab(tabName) {
@@ -961,137 +831,680 @@ def home():
         
         function loadGameData() {
             fetch('/load-data')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     gameData = data;
-                    console.log('Loaded game data:', data);
-                    updateGameTeamsDisplay();
+                    console.log('Game data loaded:', data);
                     updateStorageStatus();
                 })
                 .catch(error => {
                     console.error('Error loading game data:', error);
-                    showError('Failed to load data: ' + error.message);
+                    showMessage('Error loading data: ' + error.message, 'error');
                 });
         }
         
         function updateStorageStatus() {
             const statusElement = document.getElementById('storageStatus');
             const storageInfoElement = document.getElementById('storageInfo');
-            const supabaseStatusElement = document.getElementById('supabaseStatus');
             
-            fetch('/storage-status')
-                .then(response => response.json())
-                .then(data => {
-                    if (useLocalStorage) {
-                        statusElement.innerHTML = `🔧 Forced Local Storage | ${data.total_games} Games | ${data.total_players} Players`;
-                        statusElement.className = 'storage-status local';
-                        supabaseStatusElement.innerHTML = '🔧 Local Storage Forced';
-                        supabaseStatusElement.style.color = '#ff9800';
-                    } else if (data.using_supabase) {
-                        statusElement.innerHTML = `✅ Cloud Storage Active | ${data.total_games} Games | ${data.total_players} Players`;
-                        statusElement.className = 'storage-status cloud';
-                        supabaseStatusElement.innerHTML = '✅ Connected';
-                        supabaseStatusElement.style.color = '#4CAF50';
-                    } else {
-                        statusElement.innerHTML = `⚠️ Using Local Storage | ${data.total_games} Games | ${data.total_players} Players`;
-                        statusElement.className = 'storage-status local';
-                        supabaseStatusElement.innerHTML = '❌ Not Connected (Using Local Fallback)';
-                        supabaseStatusElement.style.color = '#ff9800';
+            const totalGames = gameData.games ? gameData.games.length : 0;
+            const totalPlayers = gameData.players ? Object.keys(gameData.players).length : 0;
+            
+            statusElement.innerHTML = `✅ Local Storage Active | ${totalGames} Games | ${totalPlayers} Players`;
+            
+            storageInfoElement.innerHTML = `
+                <strong>Current Data Summary:</strong><br>
+                • Games Recorded: ${totalGames}<br>
+                • Players Tracked: ${totalPlayers}<br>
+                • Storage: Local File<br>
+                • Last Updated: ${new Date().toLocaleTimeString()}
+            `;
+        }
+        
+        function addPlayerField() {
+            playerCount++;
+            const form = document.getElementById('playerForm');
+            const row = document.createElement('div');
+            row.className = 'form-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Player name" id="playerName${playerCount}">
+                <select id="playerPosition${playerCount}">
+                    <option value="goalkeeper">Goalkeeper</option>
+                    <option value="defender">Defender</option>
+                    <option value="midfielder">Midfielder</option>
+                    <option value="forward">Forward</option>
+                    <option value="left_wing">Left Wing</option>
+                    <option value="right_wing">Right Wing</option>
+                </select>
+                <input type="number" min="1" max="10" value="5" class="skill-input" id="playerSkill${playerCount}">
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+            `;
+            form.appendChild(row);
+        }
+        
+        function addSampleTeam() {
+            const samplePlayers = [
+                { name: 'John Smith', position: 'goalkeeper', skill: 7 },
+                { name: 'Mike Johnson', position: 'defender', skill: 6 },
+                { name: 'Chris Davis', position: 'defender', skill: 5 },
+                { name: 'David Wilson', position: 'midfielder', skill: 8 },
+                { name: 'Paul Brown', position: 'midfielder', skill: 6 },
+                { name: 'Mark Miller', position: 'forward', skill: 7 },
+                { name: 'James Taylor', position: 'forward', skill: 6 },
+                { name: 'Robert Anderson', position: 'left_wing', skill: 5 },
+                { name: 'Daniel Thomas', position: 'right_wing', skill: 6 },
+                { name: 'Steven Moore', position: 'midfielder', skill: 7 }
+            ];
+            
+            // Clear existing players
+            const form = document.getElementById('playerForm');
+            while (form.children.length > 1) {
+                form.removeChild(form.lastChild);
+            }
+            playerCount = 0;
+            
+            // Add sample players
+            samplePlayers.forEach(player => {
+                playerCount++;
+                const row = document.createElement('div');
+                row.className = 'form-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Player name" id="playerName${playerCount}" value="${player.name}">
+                    <select id="playerPosition${playerCount}">
+                        <option value="goalkeeper" ${player.position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                        <option value="defender" ${player.position === 'defender' ? 'selected' : ''}>Defender</option>
+                        <option value="midfielder" ${player.position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                        <option value="forward" ${player.position === 'forward' ? 'selected' : ''}>Forward</option>
+                        <option value="left_wing" ${player.position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                        <option value="right_wing" ${player.position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
+                    </select>
+                    <input type="number" min="1" max="10" value="${player.skill}" class="skill-input" id="playerSkill${playerCount}">
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+                `;
+                form.appendChild(row);
+            });
+            
+            showMessage('Sample team added! Click "Balance Teams" to create teams.', 'success');
+        }
+        
+        function loadSavedPlayers() {
+            const currentPlayers = gameData.current_players || [];
+            if (currentPlayers.length === 0) {
+                showMessage('No saved players found!', 'error');
+                return;
+            }
+            
+            // Clear existing players
+            const form = document.getElementById('playerForm');
+            while (form.children.length > 1) {
+                form.removeChild(form.lastChild);
+            }
+            playerCount = 0;
+            
+            // Add saved players
+            currentPlayers.forEach(player => {
+                playerCount++;
+                const row = document.createElement('div');
+                row.className = 'form-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Player name" id="playerName${playerCount}" value="${player.name}">
+                    <select id="playerPosition${playerCount}">
+                        <option value="goalkeeper" ${player.position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                        <option value="defender" ${player.position === 'defender' ? 'selected' : ''}>Defender</option>
+                        <option value="midfielder" ${player.position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                        <option value="forward" ${player.position === 'forward' ? 'selected' : ''}>Forward</option>
+                        <option value="left_wing" ${player.position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                        <option value="right_wing" ${player.position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
+                    </select>
+                    <input type="number" min="1" max="10" value="${player.skill_level}" class="skill-input" id="playerSkill${playerCount}">
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+                `;
+                form.appendChild(row);
+            });
+            
+            showMessage(`Loaded ${currentPlayers.length} saved players!`, 'success');
+        }
+        
+        function getPlayersFromForm() {
+            const players = [];
+            for (let i = 1; i <= playerCount; i++) {
+                const nameElem = document.getElementById('playerName' + i);
+                const positionElem = document.getElementById('playerPosition' + i);
+                const skillElem = document.getElementById('playerSkill' + i);
+                
+                if (nameElem && nameElem.value.trim() !== '') {
+                    players.push({
+                        name: nameElem.value.trim(),
+                        position: positionElem.value,
+                        skill_level: parseInt(skillElem.value)
+                    });
+                }
+            }
+            return players;
+        }
+        
+        function balanceTeams() {
+            const players = getPlayersFromForm();
+            if (players.length < 2) {
+                showMessage('Need at least 2 players to balance teams!', 'error');
+                return;
+            }
+            
+            fetch('/balance-teams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showMessage('Error: ' + data.error, 'error');
+                    return;
+                }
+                
+                currentTeams = data;
+                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                
+                // Show score input and record game button
+                document.getElementById('scoreSection').style.display = 'grid';
+                document.getElementById('recordGameSection').style.display = 'flex';
+                
+                showMessage('Teams balanced successfully!', 'success');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error balancing teams: ' + error.message, 'error');
+            });
+        }
+        
+        function randomizeTeams() {
+            const players = getPlayersFromForm();
+            if (players.length < 2) {
+                showMessage('Need at least 2 players to create teams!', 'error');
+                return;
+            }
+            
+            fetch('/random-teams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showMessage('Error: ' + data.error, 'error');
+                    return;
+                }
+                
+                currentTeams = data;
+                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                
+                // Show score input and record game button
+                document.getElementById('scoreSection').style.display = 'grid';
+                document.getElementById('recordGameSection').style.display = 'flex';
+                
+                showMessage('Random teams created!', 'success');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error creating random teams: ' + error.message, 'error');
+            });
+        }
+        
+        function displayTeams(teamA, teamB, strengthA, strengthB) {
+            const teamAElem = document.getElementById('teamA');
+            const teamBElem = document.getElementById('teamB');
+            const strengthAElem = document.getElementById('teamAStrength');
+            const strengthBElem = document.getElementById('teamBStrength');
+            const balanceIndicator = document.getElementById('balanceIndicator');
+            
+            // Clear previous teams
+            teamAElem.innerHTML = '';
+            teamBElem.innerHTML = '';
+            
+            // Display Team A
+            teamA.forEach(player => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
+                li.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-details">
+                            <span class="position-badge position-${player.position}">${player.position}</span>
+                            • Skill: ${player.skill_level}/10
+                        </div>
+                    </div>
+                `;
+                teamAElem.appendChild(li);
+            });
+            
+            // Display Team B
+            teamB.forEach(player => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
+                li.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-details">
+                            <span class="position-badge position-${player.position}">${player.position}</span>
+                            • Skill: ${player.skill_level}/10
+                        </div>
+                    </div>
+                `;
+                teamBElem.appendChild(li);
+            });
+            
+            // Update strengths
+            strengthAElem.textContent = `Strength: ${strengthA.toFixed(1)}`;
+            strengthBElem.textContent = `Strength: ${strengthB.toFixed(1)}`;
+            
+            // Update balance indicator
+            const balanceDiff = Math.abs(strengthA - strengthB);
+            if (balanceDiff < 2) {
+                balanceIndicator.innerHTML = `<span class="balanced">✅ Well Balanced! Difference: ${balanceDiff.toFixed(1)}</span>`;
+            } else if (balanceDiff < 5) {
+                balanceIndicator.innerHTML = `<span class="balanced">⚖️ Fairly Balanced. Difference: ${balanceDiff.toFixed(1)}</span>`;
+            } else {
+                balanceIndicator.innerHTML = `<span class="unbalanced">⚠️ Significant Imbalance. Difference: ${balanceDiff.toFixed(1)}</span>`;
+            }
+        }
+        
+        function saveCurrentPlayers() {
+            const players = getPlayersFromForm();
+            if (players.length === 0) {
+                showMessage('No players to save!', 'error');
+                return;
+            }
+            
+            fetch('/save-players', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('Players saved successfully!', 'success');
+                    loadGameData();
+                } else {
+                    showMessage('Error saving players: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error saving players: ' + error.message, 'error');
+            });
+        }
+        
+        function recordGame() {
+            const teamAScore = parseInt(document.getElementById('teamAScore').value);
+            const teamBScore = parseInt(document.getElementById('teamBScore').value);
+            
+            if (isNaN(teamAScore) || isNaN(teamBScore)) {
+                showMessage('Please enter valid scores for both teams!', 'error');
+                return;
+            }
+            
+            const gameData = {
+                date: new Date().toISOString().split('T')[0],
+                team_a: {
+                    players: currentTeams.team_a,
+                    score: teamAScore
+                },
+                team_b: {
+                    players: currentTeams.team_b,
+                    score: teamBScore
+                },
+                location: document.getElementById('gameLocation').value || 'Unknown',
+                notes: document.getElementById('gameNotes').value || ''
+            };
+            
+            fetch('/record-game', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gameData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('Game recorded successfully!', 'success');
+                    // Reset scores
+                    document.getElementById('teamAScore').value = 0;
+                    document.getElementById('teamBScore').value = 0;
+                    loadGameData();
+                } else {
+                    showMessage('Error recording game: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error recording game: ' + error.message, 'error');
+            });
+        }
+        
+        function loadCurrentTeamsForGame() {
+            if (currentTeams.team_a.length === 0) {
+                showMessage('No teams available. Please create teams in the Team Splitter tab first.', 'error');
+                return;
+            }
+            
+            const preview = document.getElementById('gameTeamsPreview');
+            preview.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4>Team A (Strength: ${currentTeams.strength_a?.toFixed(1) || 'N/A'})</h4>
+                        <ul>
+                            ${currentTeams.team_a.map(player => `<li>${player.name} - ${player.position}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Team B (Strength: ${currentTeams.strength_b?.toFixed(1) || 'N/A'})</h4>
+                        <ul>
+                            ${currentTeams.team_b.map(player => `<li>${player.name} - ${player.position}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function recordGameFromTracker() {
+            const teamAScore = parseInt(prompt('Enter Team A score:', '0'));
+            const teamBScore = parseInt(prompt('Enter Team B score:', '0'));
+            
+            if (isNaN(teamAScore) || isNaN(teamBScore)) {
+                showMessage('Please enter valid scores!', 'error');
+                return;
+            }
+            
+            const gameData = {
+                date: document.getElementById('gameDate').value,
+                team_a: {
+                    players: currentTeams.team_a,
+                    score: teamAScore
+                },
+                team_b: {
+                    players: currentTeams.team_b,
+                    score: teamBScore
+                },
+                location: document.getElementById('gameLocation').value || 'Unknown',
+                notes: document.getElementById('gameNotes').value || ''
+            };
+            
+            fetch('/record-game', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gameData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('Game recorded successfully!', 'success');
+                    // Clear form
+                    document.getElementById('gameLocation').value = '';
+                    document.getElementById('gameNotes').value = '';
+                    document.getElementById('gameDate').valueAsDate = new Date();
+                    loadGameData();
+                } else {
+                    showMessage('Error recording game: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error recording game: ' + error.message, 'error');
+            });
+        }
+        
+        function updatePlayerStats() {
+            const tbody = document.getElementById('playerStatsBody');
+            tbody.innerHTML = '';
+            
+            const players = gameData.players || {};
+            const playerNames = Object.keys(players).sort();
+            
+            playerNames.forEach(playerName => {
+                const stats = players[playerName];
+                const winRate = stats.games_played > 0 ? (stats.wins / stats.games_played * 100) : 0;
+                const winRateClass = winRate >= 60 ? 'high' : winRate >= 40 ? 'medium' : 'low';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${playerName}</strong></td>
+                    <td>${stats.games_played}</td>
+                    <td>${stats.wins}</td>
+                    <td><span class="win-rate ${winRateClass}">${winRate.toFixed(1)}%</span></td>
+                    <td>${stats.total_goals || 0}</td>
+                    <td>${stats.average_rating ? stats.average_rating.toFixed(1) : 'N/A'}</td>
+                    <td>${stats.last_played || 'Never'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            if (playerNames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No player statistics available yet.</td></tr>';
+            }
+        }
+        
+        function updateGameHistory() {
+            const container = document.getElementById('gameHistoryList');
+            const games = gameData.games || [];
+            
+            if (games.length === 0) {
+                container.innerHTML = '<p>No games recorded yet.</p>';
+                return;
+            }
+            
+            // Sort games by date (newest first)
+            games.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            container.innerHTML = '';
+            games.forEach(game => {
+                const gameElem = document.createElement('div');
+                gameElem.className = `game-item ${game.team_a.score === game.team_b.score ? '' : 
+                    (game.team_a.score > game.team_b.score ? '' : 'lost')}`;
+                
+                const winner = game.team_a.score > game.team_b.score ? 'Team A' : 
+                              game.team_b.score > game.team_a.score ? 'Team B' : 'Draw';
+                
+                gameElem.innerHTML = `
+                    <div class="game-header">
+                        <div class="game-score">${game.team_a.score} - ${game.team_b.score}</div>
+                        <div class="game-date">${game.date}</div>
+                    </div>
+                    <div><strong>Winner:</strong> ${winner}</div>
+                    <div><strong>Location:</strong> ${game.location || 'Unknown'}</div>
+                    ${game.notes ? `<div><strong>Notes:</strong> ${game.notes}</div>` : ''}
+                `;
+                container.appendChild(gameElem);
+            });
+        }
+        
+        function showMessage(message, type) {
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+            messageDiv.textContent = message;
+            
+            // Add to top of page
+            const header = document.querySelector('header');
+            header.appendChild(messageDiv);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+        
+        function exportData() {
+            document.getElementById('exportSection').classList.remove('hidden');
+            document.getElementById('importSection').classList.add('hidden');
+            document.getElementById('exportData').value = JSON.stringify(gameData, null, 2);
+        }
+        
+        function copyExportData() {
+            const exportData = document.getElementById('exportData');
+            exportData.select();
+            document.execCommand('copy');
+            showMessage('Data copied to clipboard!', 'success');
+        }
+        
+        function importData() {
+            document.getElementById('importSection').classList.remove('hidden');
+            document.getElementById('exportSection').classList.add('hidden');
+        }
+        
+        function cancelImport() {
+            document.getElementById('importSection').classList.add('hidden');
+            document.getElementById('importData').value = '';
+        }
+        
+        function processImport() {
+            const importData = document.getElementById('importData').value;
+            if (!importData.trim()) {
+                showMessage('Please paste data to import!', 'error');
+                return;
+            }
+            
+            try {
+                const parsedData = JSON.parse(importData);
+                
+                if (!parsedData.players || !parsedData.games) {
+                    showMessage('Invalid data format!', 'error');
+                    return;
+                }
+                
+                if (!confirm('This will replace all current data. Are you sure?')) {
+                    return;
+                }
+                
+                fetch('/import-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(parsedData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
-                    
-                    storageInfoElement.innerHTML = `
-                        <strong>Current Data Summary:</strong><br>
-                        • Games Recorded: ${data.total_games}<br>
-                        • Players Tracked: ${data.total_players}<br>
-                        • Storage: ${useLocalStorage ? 'Forced Local' : (data.using_supabase ? 'Cloud (Supabase)' : 'Local File')}<br>
-                        • Last Updated: ${new Date().toLocaleTimeString()}
-                    `;
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showMessage('Data imported successfully!', 'success');
+                        cancelImport();
+                        loadGameData();
+                    } else {
+                        showMessage('Error importing data: ' + (data.error || 'Unknown error'), 'error');
+                    }
                 })
                 .catch(error => {
-                    console.error('Error checking storage status:', error);
-                    statusElement.innerHTML = `❌ Storage Error | Check Console`;
-                    statusElement.className = 'storage-status error';
+                    console.error('Error:', error);
+                    showMessage('Error importing data: ' + error.message, 'error');
                 });
+                
+            } catch (e) {
+                showMessage('Invalid JSON data! Please check your input.', 'error');
+            }
         }
         
-        function testSupabase() {
-            fetch('/test-supabase')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.connected) {
-                        alert('✅ Supabase connection successful!');
-                    } else {
-                        alert('❌ Supabase connection failed: ' + data.error);
+        function clearAllData() {
+            if (!confirm('This will permanently delete ALL data (players, games, statistics). Are you sure?')) {
+                return;
+            }
+            
+            if (!confirm('This action cannot be undone. Are you absolutely sure?')) {
+                return;
+            }
+            
+            fetch('/clear-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showMessage('All data cleared successfully!', 'success');
+                    loadGameData();
+                    // Reset form
+                    const form = document.getElementById('playerForm');
+                    while (form.children.length > 1) {
+                        form.removeChild(form.lastChild);
                     }
-                    updateStorageStatus();
-                })
-                .catch(error => {
-                    alert('Error testing Supabase connection: ' + error.message);
-                });
+                    playerCount = 0;
+                    addPlayerField();
+                    addPlayerField();
+                } else {
+                    showMessage('Error clearing data: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error clearing data: ' + error.message, 'error');
+            });
         }
-        
-        function forceLocalStorage() {
-            useLocalStorage = true;
-            alert('🔄 Now using local storage. Data will be saved to file instead of Supabase.');
-            updateStorageStatus();
-        }
-        
-        // ... (all your existing JavaScript functions remain the same)
-        // Only showing the key changes above for brevity
-        
     </script>
 </body>
 </html>
     '''
 
-# Enhanced routes with better error handling
 @app.route('/storage-status')
 def storage_status():
+    data = load_data()
+    total_games = len(data.get('games', []))
+    total_players = len(data.get('players', {}))
+    
+    return jsonify({
+        'using_supabase': False,  # Always false since we're using local storage
+        'total_games': total_games,
+        'total_players': total_players
+    })
+
+@app.route('/load-data', methods=['GET'])
+def load_data_route():
     try:
         data = load_data()
-        total_games = len(data.get('games', []))
-        total_players = len(data.get('players', {}))
-        
-        # Check if we're using Supabase by making a test request
-        using_supabase = False
-        try:
-            test_data = SupabaseManager.load_data()
-            using_supabase = test_data is not None and isinstance(test_data, dict)
-        except:
-            using_supabase = False
-        
-        return jsonify({
-            'using_supabase': using_supabase,
-            'total_games': total_games,
-            'total_players': total_players
-        })
+        return jsonify(data)
     except Exception as e:
-        return jsonify({
-            'using_supabase': False,
-            'total_games': 0,
-            'total_players': 0,
-            'error': str(e)
-        })
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/test-supabase')
-def test_supabase():
-    try:
-        # Test both connection and data retrieval
-        test_data = SupabaseManager.load_data()
-        if test_data is not None and isinstance(test_data, dict):
-            return jsonify({'connected': True})
-        else:
-            return jsonify({'connected': False, 'error': 'No valid data returned from Supabase'})
-    except Exception as e:
-        return jsonify({'connected': False, 'error': str(e)})
-
-# Enhanced save-players route
 @app.route('/save-players', methods=['POST'])
 def save_players():
     try:
         data = request.get_json()
-        print(f"Received players data: {data}")
-        
         players_data = data['players']
         
         all_data = load_data()
@@ -1111,19 +1524,16 @@ def save_players():
                     'skill_level': player_data['skill_level']
                 }
         
-        print(f"Saving data with {len(all_data['players'])} players")
         success = save_data(all_data)
         
         if success:
             return jsonify({'success': True, 'message': f'Saved {len(players_data)} players'})
         else:
-            return jsonify({'error': 'Failed to save data to storage'}), 500
+            return jsonify({'error': 'Failed to save data'}), 500
             
     except Exception as e:
-        print(f"Error in save_players: {e}")
         return jsonify({'error': str(e)}), 500
 
-# Enhanced record-game route
 @app.route('/record-game', methods=['POST'])
 def record_game():
     try:
@@ -1179,7 +1589,6 @@ def record_game():
                 all_data['players'][name]['wins'] += 1
             all_data['players'][name]['last_played'] = game_data['date']
         
-        print(f"Saving game data with {len(all_data['games'])} games and {len(all_data['players'])} players")
         success = save_data(all_data)
         
         if success:
@@ -1190,13 +1599,109 @@ def record_game():
                 'total_players': len(all_data['players'])
             })
         else:
-            return jsonify({'error': 'Failed to save game data to storage'}), 500
+            return jsonify({'error': 'Failed to save game data'}), 500
             
     except Exception as e:
-        print(f"Error in record_game: {e}")
         return jsonify({'error': str(e)}), 500
 
-# Keep all other routes the same as before...
+@app.route('/balance-teams', methods=['POST'])
+def balance_teams():
+    try:
+        data = request.get_json()
+        players_data = data['players']
+        
+        players = []
+        for player_data in players_data:
+            player = Player(
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
+            )
+            players.append(player)
+        
+        team_a, team_b = TeamBalancer.balance_teams(players)
+        
+        team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
+        team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
+        
+        strength_a = TeamBalancer.calculate_team_strength(team_a)
+        strength_b = TeamBalancer.calculate_team_strength(team_b)
+        
+        response = {
+            'team_a': team_a_dict,
+            'team_b': team_b_dict,
+            'strength_a': strength_a,
+            'strength_b': strength_b
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/random-teams', methods=['POST'])
+def random_teams():
+    try:
+        data = request.get_json()
+        players_data = data['players']
+        
+        players = []
+        for player_data in players_data:
+            player = Player(
+                name=player_data['name'],
+                position=player_data['position'],
+                skill_level=player_data['skill_level']
+            )
+            players.append(player)
+        
+        random.shuffle(players)
+        split_point = len(players) // 2
+        team_a = players[:split_point]
+        team_b = players[split_point:]
+        
+        team_a_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_a]
+        team_b_dict = [{'name': p.name, 'position': p.position, 'skill_level': p.skill_level} for p in team_b]
+        
+        strength_a = TeamBalancer.calculate_team_strength(team_a)
+        strength_b = TeamBalancer.calculate_team_strength(team_b)
+        
+        response = {
+            'team_a': team_a_dict,
+            'team_b': team_b_dict,
+            'strength_a': strength_a,
+            'strength_b': strength_b
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/import-data', methods=['POST'])
+def import_data():
+    try:
+        imported_data = request.get_json()
+        if save_data(imported_data):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to save imported data'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clear-data', methods=['POST'])
+def clear_data():
+    try:
+        empty_data = {
+            'players': {},
+            'games': [],
+            'current_players': []
+        }
+        if save_data(empty_data):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to clear data'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
