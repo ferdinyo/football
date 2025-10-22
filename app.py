@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 import random
 import math
@@ -9,9 +10,9 @@ import requests
 app = Flask(__name__)
 
 # Supabase configuration - YOU NEED TO UPDATE THESE!
-#SUPABASE_URL = "https://eglrpoztowhvgwoudiwc.supabase.co"  # Replace with your Supabase URL
-#SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnbHJwb3p0b3dodmd3b3VkaXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NzU0MjEsImV4cCI6MjA3NjQ1MTQyMX0.dqf8hintMcgKWSSsmy9TVW6ov7gzF5EdrSjbiVEhADM"  # Replace with your Supabase anon/public key
-#TABLE_NAME = "football_data"
+SUPABASE_URL = "https://eglrpoztowhvgwoudiwc.supabase.co"  # Replace with your Supabase URL
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnbHJwb3p0b3dodmd3b3VkaXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NzU0MjEsImV4cCI6MjA3NjQ1MTQyMX0.dqf8hintMcgKWSSsmy9TVW6ov7gzF5EdrSjbiVEhADM"  # Replace with your Supabase anon/public key
+TABLE_NAME = "football_data"
 
 class SupabaseManager:
     @staticmethod
@@ -749,6 +750,95 @@ def home():
                                 <ul id="teamB" class="player-list"></ul>
                             </div>
                         </div>
+                        
+                        <div class="score-input" id="scoreSection" style="display: none;">
+                            <div class="score-team">
+                                <h4>Team A Score</h4>
+                                <input type="number" id="teamAScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="score-team">
+                                <h4>Team B Score</h4>
+                                <input type="number" id="teamBScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                        </div>
+                        
+                        <div class="buttons" id="recordGameSection" style="display: none;">
+                            <button onclick="recordGame()">📝 Record Game Result</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Tracker Tab -->
+            <div id="game-tracker" class="tab-content">
+                <div class="stats-section">
+                    <h2>📝 Record New Game</h2>
+                    <div class="app-container">
+                        <div class="input-section">
+                            <h3>Game Details</h3>
+                            <div style="display: grid; gap: 15px;">
+                                <div>
+                                    <label><strong>Game Date:</strong></label>
+                                    <input type="date" id="gameDate" style="width: 100%;">
+                                </div>
+                                <div>
+                                    <label><strong>Location/Venue:</strong></label>
+                                    <input type="text" id="gameLocation" placeholder="e.g., Central Park Field" style="width: 100%;">
+                                </div>
+                                <div>
+                                    <label><strong>Notes (optional):</strong></label>
+                                    <textarea id="gameNotes" placeholder="Any additional notes about the game..." style="width: 100%; height: 100px;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="teams-section">
+                            <h3>Select Teams</h3>
+                            <p>Use the Team Splitter tab to create balanced teams first, then record the game here.</p>
+                            <div id="gameTeamsPreview">
+                                <p>Teams will appear here after you create them in the Team Splitter tab.</p>
+                            </div>
+                            <div class="buttons">
+                                <button onclick="loadCurrentTeamsForGame()">🔄 Load Current Teams</button>
+                                <button class="secondary-btn" onclick="recordGameFromTracker()">💾 Record Game</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Player Statistics Tab -->
+            <div id="player-stats" class="tab-content">
+                <div class="stats-section">
+                    <h2>📈 Player Statistics</h2>
+                    <div class="player-stats">
+                        <table class="stats-table" id="playerStatsTable">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Games</th>
+                                    <th>Wins</th>
+                                    <th>Win Rate</th>
+                                    <th>Goals</th>
+                                    <th>Avg Rating</th>
+                                    <th>Last Played</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerStatsBody">
+                                <!-- Player stats will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game History Tab -->
+            <div id="game-history" class="tab-content">
+                <div class="stats-section">
+                    <h2>📋 Game History</h2>
+                    <div class="game-history" id="gameHistoryList">
+                        <!-- Game history will be populated here -->
                     </div>
                 </div>
             </div>
@@ -793,9 +883,6 @@ def home():
                     </div>
                 </div>
             </div>
-            
-            <!-- Other tabs would go here (same as before) -->
-            
         </div>
     </div>
 
@@ -889,9 +976,563 @@ def home():
                 });
         }
         
-        // ... include all your existing JavaScript functions (addPlayerField, balanceTeams, etc.)
-        // These remain the same as in the previous versions
+        function addPlayerField() {
+            playerCount++;
+            const form = document.getElementById('playerForm');
+            const row = document.createElement('div');
+            row.className = 'form-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Player name" id="playerName${playerCount}">
+                <select id="playerPosition${playerCount}">
+                    <option value="goalkeeper">Goalkeeper</option>
+                    <option value="defender">Defender</option>
+                    <option value="midfielder">Midfielder</option>
+                    <option value="forward">Forward</option>
+                    <option value="left_wing">Left Wing</option>
+                    <option value="right_wing">Right Wing</option>
+                </select>
+                <input type="number" min="1" max="10" value="5" class="skill-input" id="playerSkill${playerCount}">
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+            `;
+            form.appendChild(row);
+        }
         
+        function addSampleTeam() {
+            const samplePlayers = [
+                { name: 'John Smith', position: 'goalkeeper', skill: 7 },
+                { name: 'Mike Johnson', position: 'defender', skill: 6 },
+                { name: 'Chris Davis', position: 'defender', skill: 5 },
+                { name: 'David Wilson', position: 'midfielder', skill: 8 },
+                { name: 'Paul Brown', position: 'midfielder', skill: 6 },
+                { name: 'Mark Miller', position: 'forward', skill: 7 },
+                { name: 'James Taylor', position: 'forward', skill: 6 },
+                { name: 'Robert Anderson', position: 'left_wing', skill: 5 },
+                { name: 'Daniel Thomas', position: 'right_wing', skill: 6 },
+                { name: 'Steven Moore', position: 'midfielder', skill: 7 }
+            ];
+            
+            // Clear existing players
+            const form = document.getElementById('playerForm');
+            while (form.children.length > 1) {
+                form.removeChild(form.lastChild);
+            }
+            playerCount = 0;
+            
+            // Add sample players
+            samplePlayers.forEach(player => {
+                playerCount++;
+                const row = document.createElement('div');
+                row.className = 'form-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Player name" id="playerName${playerCount}" value="${player.name}">
+                    <select id="playerPosition${playerCount}">
+                        <option value="goalkeeper" ${player.position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                        <option value="defender" ${player.position === 'defender' ? 'selected' : ''}>Defender</option>
+                        <option value="midfielder" ${player.position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                        <option value="forward" ${player.position === 'forward' ? 'selected' : ''}>Forward</option>
+                        <option value="left_wing" ${player.position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                        <option value="right_wing" ${player.position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
+                    </select>
+                    <input type="number" min="1" max="10" value="${player.skill}" class="skill-input" id="playerSkill${playerCount}">
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+                `;
+                form.appendChild(row);
+            });
+        }
+        
+        function loadSavedPlayers() {
+            const currentPlayers = gameData.current_players || [];
+            if (currentPlayers.length === 0) {
+                alert('No saved players found!');
+                return;
+            }
+            
+            // Clear existing players
+            const form = document.getElementById('playerForm');
+            while (form.children.length > 1) {
+                form.removeChild(form.lastChild);
+            }
+            playerCount = 0;
+            
+            // Add saved players
+            currentPlayers.forEach(player => {
+                playerCount++;
+                const row = document.createElement('div');
+                row.className = 'form-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Player name" id="playerName${playerCount}" value="${player.name}">
+                    <select id="playerPosition${playerCount}">
+                        <option value="goalkeeper" ${player.position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                        <option value="defender" ${player.position === 'defender' ? 'selected' : ''}>Defender</option>
+                        <option value="midfielder" ${player.position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                        <option value="forward" ${player.position === 'forward' ? 'selected' : ''}>Forward</option>
+                        <option value="left_wing" ${player.position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                        <option value="right_wing" ${player.position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
+                    </select>
+                    <input type="number" min="1" max="10" value="${player.skill_level}" class="skill-input" id="playerSkill${playerCount}">
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+                `;
+                form.appendChild(row);
+            });
+            
+            alert(`Loaded ${currentPlayers.length} saved players!`);
+        }
+        
+        function getPlayersFromForm() {
+            const players = [];
+            for (let i = 1; i <= playerCount; i++) {
+                const nameElem = document.getElementById('playerName' + i);
+                const positionElem = document.getElementById('playerPosition' + i);
+                const skillElem = document.getElementById('playerSkill' + i);
+                
+                if (nameElem && nameElem.value.trim() !== '') {
+                    players.push({
+                        name: nameElem.value.trim(),
+                        position: positionElem.value,
+                        skill_level: parseInt(skillElem.value)
+                    });
+                }
+            }
+            return players;
+        }
+        
+        function balanceTeams() {
+            const players = getPlayersFromForm();
+            if (players.length < 2) {
+                alert('Need at least 2 players to balance teams!');
+                return;
+            }
+            
+            fetch('/balance-teams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                currentTeams = data;
+                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                
+                // Show score input and record game button
+                document.getElementById('scoreSection').style.display = 'grid';
+                document.getElementById('recordGameSection').style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error balancing teams');
+            });
+        }
+        
+        function randomizeTeams() {
+            const players = getPlayersFromForm();
+            if (players.length < 2) {
+                alert('Need at least 2 players to create teams!');
+                return;
+            }
+            
+            fetch('/random-teams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                currentTeams = data;
+                displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+                
+                // Show score input and record game button
+                document.getElementById('scoreSection').style.display = 'grid';
+                document.getElementById('recordGameSection').style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating random teams');
+            });
+        }
+        
+        function displayTeams(teamA, teamB, strengthA, strengthB) {
+            const teamAElem = document.getElementById('teamA');
+            const teamBElem = document.getElementById('teamB');
+            const strengthAElem = document.getElementById('teamAStrength');
+            const strengthBElem = document.getElementById('teamBStrength');
+            const balanceIndicator = document.getElementById('balanceIndicator');
+            
+            // Clear previous teams
+            teamAElem.innerHTML = '';
+            teamBElem.innerHTML = '';
+            
+            // Display Team A
+            teamA.forEach(player => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
+                li.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-details">
+                            <span class="position-badge position-${player.position}">${player.position}</span>
+                            • Skill: ${player.skill_level}/10
+                        </div>
+                    </div>
+                `;
+                teamAElem.appendChild(li);
+            });
+            
+            // Display Team B
+            teamB.forEach(player => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
+                li.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-name">${player.name}</div>
+                        <div class="player-details">
+                            <span class="position-badge position-${player.position}">${player.position}</span>
+                            • Skill: ${player.skill_level}/10
+                        </div>
+                    </div>
+                `;
+                teamBElem.appendChild(li);
+            });
+            
+            // Update strengths
+            strengthAElem.textContent = `Strength: ${strengthA.toFixed(1)}`;
+            strengthBElem.textContent = `Strength: ${strengthB.toFixed(1)}`;
+            
+            // Update balance indicator
+            const balanceDiff = Math.abs(strengthA - strengthB);
+            if (balanceDiff < 2) {
+                balanceIndicator.innerHTML = `<span class="balanced">✅ Well Balanced! Difference: ${balanceDiff.toFixed(1)}</span>`;
+            } else if (balanceDiff < 5) {
+                balanceIndicator.innerHTML = `<span class="balanced">⚖️ Fairly Balanced. Difference: ${balanceDiff.toFixed(1)}</span>`;
+            } else {
+                balanceIndicator.innerHTML = `<span class="unbalanced">⚠️ Significant Imbalance. Difference: ${balanceDiff.toFixed(1)}</span>`;
+            }
+        }
+        
+        function saveCurrentPlayers() {
+            const players = getPlayersFromForm();
+            if (players.length === 0) {
+                alert('No players to save!');
+                return;
+            }
+            
+            fetch('/save-players', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: players })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Players saved successfully!');
+                    loadGameData();
+                } else {
+                    alert('Error saving players: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving players');
+            });
+        }
+        
+        function recordGame() {
+            const teamAScore = parseInt(document.getElementById('teamAScore').value);
+            const teamBScore = parseInt(document.getElementById('teamBScore').value);
+            
+            if (isNaN(teamAScore) || isNaN(teamBScore)) {
+                alert('Please enter valid scores for both teams!');
+                return;
+            }
+            
+            const gameData = {
+                date: new Date().toISOString().split('T')[0],
+                team_a: {
+                    players: currentTeams.team_a,
+                    score: teamAScore
+                },
+                team_b: {
+                    players: currentTeams.team_b,
+                    score: teamBScore
+                },
+                location: document.getElementById('gameLocation').value || 'Unknown',
+                notes: document.getElementById('gameNotes').value || ''
+            };
+            
+            fetch('/record-game', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gameData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Game recorded successfully!');
+                    // Reset scores
+                    document.getElementById('teamAScore').value = 0;
+                    document.getElementById('teamBScore').value = 0;
+                    loadGameData();
+                } else {
+                    alert('Error recording game: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error recording game');
+            });
+        }
+        
+        function loadCurrentTeamsForGame() {
+            if (currentTeams.team_a.length === 0) {
+                alert('No teams available. Please create teams in the Team Splitter tab first.');
+                return;
+            }
+            
+            const preview = document.getElementById('gameTeamsPreview');
+            preview.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4>Team A (Strength: ${currentTeams.strength_a?.toFixed(1) || 'N/A'})</h4>
+                        <ul>
+                            ${currentTeams.team_a.map(player => `<li>${player.name} - ${player.position}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Team B (Strength: ${currentTeams.strength_b?.toFixed(1) || 'N/A'})</h4>
+                        <ul>
+                            ${currentTeams.team_b.map(player => `<li>${player.name} - ${player.position}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function recordGameFromTracker() {
+            const teamAScore = parseInt(prompt('Enter Team A score:', '0'));
+            const teamBScore = parseInt(prompt('Enter Team B score:', '0'));
+            
+            if (isNaN(teamAScore) || isNaN(teamBScore)) {
+                alert('Please enter valid scores!');
+                return;
+            }
+            
+            const gameData = {
+                date: document.getElementById('gameDate').value,
+                team_a: {
+                    players: currentTeams.team_a,
+                    score: teamAScore
+                },
+                team_b: {
+                    players: currentTeams.team_b,
+                    score: teamBScore
+                },
+                location: document.getElementById('gameLocation').value || 'Unknown',
+                notes: document.getElementById('gameNotes').value || ''
+            };
+            
+            fetch('/record-game', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(gameData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Game recorded successfully!');
+                    // Clear form
+                    document.getElementById('gameLocation').value = '';
+                    document.getElementById('gameNotes').value = '';
+                    document.getElementById('gameDate').valueAsDate = new Date();
+                    loadGameData();
+                } else {
+                    alert('Error recording game: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error recording game');
+            });
+        }
+        
+        function updatePlayerStats() {
+            const tbody = document.getElementById('playerStatsBody');
+            tbody.innerHTML = '';
+            
+            const players = gameData.players || {};
+            const playerNames = Object.keys(players).sort();
+            
+            playerNames.forEach(playerName => {
+                const stats = players[playerName];
+                const winRate = stats.games_played > 0 ? (stats.wins / stats.games_played * 100) : 0;
+                const winRateClass = winRate >= 60 ? 'high' : winRate >= 40 ? 'medium' : 'low';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${playerName}</strong></td>
+                    <td>${stats.games_played}</td>
+                    <td>${stats.wins}</td>
+                    <td><span class="win-rate ${winRateClass}">${winRate.toFixed(1)}%</span></td>
+                    <td>${stats.total_goals || 0}</td>
+                    <td>${stats.average_rating ? stats.average_rating.toFixed(1) : 'N/A'}</td>
+                    <td>${stats.last_played || 'Never'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            if (playerNames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No player statistics available yet.</td></tr>';
+            }
+        }
+        
+        function updateGameHistory() {
+            const container = document.getElementById('gameHistoryList');
+            const games = gameData.games || [];
+            
+            if (games.length === 0) {
+                container.innerHTML = '<p>No games recorded yet.</p>';
+                return;
+            }
+            
+            // Sort games by date (newest first)
+            games.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            container.innerHTML = '';
+            games.forEach(game => {
+                const gameElem = document.createElement('div');
+                gameElem.className = `game-item ${game.team_a.score === game.team_b.score ? '' : 
+                    (game.team_a.score > game.team_b.score ? '' : 'lost')}`;
+                
+                const winner = game.team_a.score > game.team_b.score ? 'Team A' : 
+                              game.team_b.score > game.team_a.score ? 'Team B' : 'Draw';
+                
+                gameElem.innerHTML = `
+                    <div class="game-header">
+                        <div class="game-score">${game.team_a.score} - ${game.team_b.score}</div>
+                        <div class="game-date">${game.date}</div>
+                    </div>
+                    <div><strong>Winner:</strong> ${winner}</div>
+                    <div><strong>Location:</strong> ${game.location || 'Unknown'}</div>
+                    ${game.notes ? `<div><strong>Notes:</strong> ${game.notes}</div>` : ''}
+                `;
+                container.appendChild(gameElem);
+            });
+        }
+        
+        function updateGameTeamsDisplay() {
+            // This would update any game-related displays with current data
+        }
+        
+        function exportData() {
+            document.getElementById('exportSection').classList.remove('hidden');
+            document.getElementById('importSection').classList.add('hidden');
+            document.getElementById('exportData').value = JSON.stringify(gameData, null, 2);
+        }
+        
+        function copyExportData() {
+            const exportData = document.getElementById('exportData');
+            exportData.select();
+            document.execCommand('copy');
+            alert('Data copied to clipboard!');
+        }
+        
+        function importData() {
+            document.getElementById('importSection').classList.remove('hidden');
+            document.getElementById('exportSection').classList.add('hidden');
+        }
+        
+        function cancelImport() {
+            document.getElementById('importSection').classList.add('hidden');
+            document.getElementById('importData').value = '';
+        }
+        
+        function processImport() {
+            const importData = document.getElementById('importData').value;
+            if (!importData.trim()) {
+                alert('Please paste data to import!');
+                return;
+            }
+            
+            try {
+                const parsedData = JSON.parse(importData);
+                
+                if (!parsedData.players || !parsedData.games) {
+                    alert('Invalid data format!');
+                    return;
+                }
+                
+                if (!confirm('This will replace all current data. Are you sure?')) {
+                    return;
+                }
+                
+                fetch('/import-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(parsedData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Data imported successfully!');
+                        cancelImport();
+                        loadGameData();
+                    } else {
+                        alert('Error importing data: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error importing data');
+                });
+                
+            } catch (e) {
+                alert('Invalid JSON data! Please check your input.');
+            }
+        }
+        
+        function clearAllData() {
+            if (!confirm('This will permanently delete ALL data (players, games, statistics). Are you sure?')) {
+                return;
+            }
+            
+            if (!confirm('This action cannot be undone. Are you absolutely sure?')) {
+                return;
+            }
+            
+            fetch('/clear-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('All data cleared successfully!');
+                    loadGameData();
+                    // Reset form
+                    const form = document.getElementById('playerForm');
+                    while (form.children.length > 1) {
+                        form.removeChild(form.lastChild);
+                    }
+                    playerCount = 0;
+                    addPlayerField();
+                    addPlayerField();
+                } else {
+                    alert('Error clearing data: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error clearing data');
+            });
+        }
     </script>
 </body>
 </html>
@@ -924,9 +1565,6 @@ def test_supabase():
             return jsonify({'connected': False, 'error': 'No data returned from Supabase'})
     except Exception as e:
         return jsonify({'connected': False, 'error': str(e)})
-
-# Add all your existing routes (load-data, save-players, record-game, balance-teams, etc.)
-# These remain the same as in previous versions
 
 @app.route('/load-data', methods=['GET'])
 def load_data_route():
