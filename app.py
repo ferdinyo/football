@@ -26,43 +26,55 @@ SCOPES = [
 ]
 
 def get_google_credentials():
-    """Get Google credentials directly from environment variables (Render setup)"""
+    """Get Google credentials directly from environment variables (Render-compatible)"""
     try:
-        client_email = os.environ.get('GOOGLE_CLIENT_EMAIL')
-        private_key = os.environ.get('GOOGLE_PRIVATE_KEY')
-        
+        client_email = os.getenv('GOOGLE_CLIENT_EMAIL')
+        private_key = os.getenv('GOOGLE_PRIVATE_KEY')
+
         if not client_email or not private_key:
-            logger.error("Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY environment variables")
+            logger.error("❌ Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY in environment")
             return None
+
+        # Fix the private key formatting
+        private_key = private_key.replace('\\n', '\n').replace('\r', '\n')
 
         credentials_dict = {
             "type": "service_account",
-            "project_id": os.environ.get('GOOGLE_PROJECT_ID', ''),
-            "private_key_id": os.environ.get('GOOGLE_PRIVATE_KEY_ID', ''),
-            "private_key": private_key.replace('\\n', '\n'),  # Important: restore line breaks
+            "project_id": os.getenv('GOOGLE_PROJECT_ID', ''),
+            "private_key_id": os.getenv('GOOGLE_PRIVATE_KEY_ID', ''),
+            "private_key": private_key,
             "client_email": client_email,
-            "client_id": os.environ.get('GOOGLE_CLIENT_ID', ''),
+            "client_id": os.getenv('GOOGLE_CLIENT_ID', ''),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
         }
-        logger.info("🔍 Checking Google credential pieces:")
-        logger.info(f"CLIENT_EMAIL: {os.environ.get('GOOGLE_CLIENT_EMAIL')}")
-        logger.info(f"PRIVATE_KEY (first 50 chars): {os.environ.get('GOOGLE_PRIVATE_KEY', '')[:50]}")
 
         creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
-        logger.info("✅ Google credentials loaded successfully from environment variables")
+        logger.info("✅ Google credentials loaded successfully")
         return creds
 
     except Exception as e:
-        logger.error(f"❌ Error loading Google credentials: {str(e)}")
+        logger.error(f"❌ Error loading Google credentials: {e}")
         return None
 
 
-            
+@app.route("/test-google-sheets")
+def test_google_sheets():
+    try:
+        creds = get_google_credentials()
+        if not creds:
+            return jsonify({"connected": False, "error": "No valid credentials"}), 500
+
+        import gspread
+        gc = gspread.authorize(creds)
+        spreadsheet = gc.open_by_key(os.getenv('GOOGLE_SHEETS_ID'))
+        sheets = [ws.title for ws in spreadsheet.worksheets()]
+        return jsonify({"connected": True, "worksheets": sheets})
     except Exception as e:
-        logger.error(f"Error loading Google credentials: {str(e)}")
-        return None
+        logger.error(f"Google Sheets connection test failed: {e}")
+        return jsonify({"connected": False, "error": str(e)}), 500
+
 
 # Initialize Google Sheets client
 def init_google_sheets():
