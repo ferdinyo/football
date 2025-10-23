@@ -26,31 +26,35 @@ SCOPES = [
 ]
 
 def get_google_credentials():
-    """Get Google credentials from environment variables"""
+    """Get Google credentials directly from environment variables (Render setup)"""
     try:
-        # Option 1: Full JSON from environment variable
-        if os.environ.get('GOOGLE_CREDENTIALS_JSON'):
-            credentials_json = os.environ['GOOGLE_CREDENTIALS_JSON']
-            if isinstance(credentials_json, str):
-                credentials_dict = json.loads(credentials_json)
-            else:
-                credentials_dict = credentials_json
-            return Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+        client_email = os.environ.get('GOOGLE_CLIENT_EMAIL')
+        private_key = os.environ.get('GOOGLE_PRIVATE_KEY')
         
-        # Option 2: Individual environment variables
-        elif os.environ.get('GOOGLE_CLIENT_EMAIL') and os.environ.get('GOOGLE_PRIVATE_KEY'):
-            credentials_dict = {
-                "type": "service_account",
-                "project_id": os.environ.get('GOOGLE_PROJECT_ID', ''),
-                "private_key_id": os.environ.get('GOOGLE_PRIVATE_KEY_ID', ''),
-                "private_key": os.environ.get('GOOGLE_PRIVATE_KEY', '').replace('\\n', '\n'),
-                "client_email": os.environ.get('GOOGLE_CLIENT_EMAIL', ''),
-                "client_id": os.environ.get('GOOGLE_CLIENT_ID', ''),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
-            }
-            return Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+        if not client_email or not private_key:
+            logger.error("Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY environment variables")
+            return None
+
+        credentials_dict = {
+            "type": "service_account",
+            "project_id": os.environ.get('GOOGLE_PROJECT_ID', ''),
+            "private_key_id": os.environ.get('GOOGLE_PRIVATE_KEY_ID', ''),
+            "private_key": private_key.replace('\\n', '\n'),  # Important: restore line breaks
+            "client_email": client_email,
+            "client_id": os.environ.get('GOOGLE_CLIENT_ID', ''),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+        }
+
+        creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
+        logger.info("✅ Google credentials loaded successfully from environment variables")
+        return creds
+
+    except Exception as e:
+        logger.error(f"❌ Error loading Google credentials: {str(e)}")
+        return None
+
         
         # Option 3: Fallback to credentials file (for local development)
         elif os.path.exists("credentials.json"):
