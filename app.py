@@ -1113,6 +1113,431 @@ def home():
     </div>
 
     <script>
+function addPlayerField() {
+    playerCount++;
+    const form = document.getElementById('playerForm');
+    const div = document.createElement('div');
+    div.className = 'form-row';
+    div.innerHTML = `
+        <input type="text" placeholder="Player name" class="player-name">
+        <select class="player-position">
+            <option value="goalkeeper">Goalkeeper</option>
+            <option value="defender">Defender</option>
+            <option value="left_wing">Left Wing</option>
+            <option value="right_wing">Right Wing</option>
+            <option value="midfielder" selected>Midfielder</option>
+            <option value="forward">Forward</option>
+        </select>
+        <input type="number" min="1" max="10" value="5" class="skill-input player-skill">
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+    `;
+    form.appendChild(div);
+}
+
+function addSampleTeam() {
+    const samplePlayers = [
+        { name: 'John', position: 'goalkeeper', skill: 7 },
+        { name: 'Mike', position: 'defender', skill: 6 },
+        { name: 'Chris', position: 'defender', skill: 5 },
+        { name: 'David', position: 'midfielder', skill: 8 },
+        { name: 'Alex', position: 'midfielder', skill: 6 },
+        { name: 'James', position: 'forward', skill: 7 },
+        { name: 'Robert', position: 'forward', skill: 6 },
+        { name: 'Daniel', position: 'midfielder', skill: 5 },
+        { name: 'Paul', position: 'defender', skill: 6 },
+        { name: 'Mark', position: 'forward', skill: 7 }
+    ];
+
+    // Clear existing players first
+    const form = document.getElementById('playerForm');
+    const rows = form.querySelectorAll('.form-row');
+    rows.forEach((row, index) => {
+        if (index > 0) row.remove(); // Keep header row
+    });
+
+    // Add sample players
+    samplePlayers.forEach(player => {
+        playerCount++;
+        const div = document.createElement('div');
+        div.className = 'form-row';
+        div.innerHTML = `
+            <input type="text" value="${player.name}" class="player-name">
+            <select class="player-position">
+                <option value="goalkeeper" ${player.position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                <option value="defender" ${player.position === 'defender' ? 'selected' : ''}>Defender</option>
+                <option value="left_wing" ${player.position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                <option value="right_wing" ${player.position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
+                <option value="midfielder" ${player.position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                <option value="forward" ${player.position === 'forward' ? 'selected' : ''}>Forward</option>
+            </select>
+            <input type="number" min="1" max="10" value="${player.skill}" class="skill-input player-skill">
+            <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+        `;
+        form.appendChild(div);
+    });
+}
+
+function loadSavedPlayers() {
+    fetch('/load-data')
+        .then(response => response.json())
+        .then(data => {
+            const currentPlayers = data.current_players || [];
+            if (currentPlayers.length === 0) {
+                alert('No saved players found!');
+                return;
+            }
+
+            // Clear existing players first
+            const form = document.getElementById('playerForm');
+            const rows = form.querySelectorAll('.form-row');
+            rows.forEach((row, index) => {
+                if (index > 0) row.remove(); // Keep header row
+            });
+
+            // Add saved players
+            currentPlayers.forEach(player => {
+                playerCount++;
+                const div = document.createElement('div');
+                div.className = 'form-row';
+                div.innerHTML = `
+                    <input type="text" value="${player.name}" class="player-name">
+                    <select class="player-position">
+                        <option value="goalkeeper" ${player.position === 'goalkeeper' ? 'selected' : ''}>Goalkeeper</option>
+                        <option value="defender" ${player.position === 'defender' ? 'selected' : ''}>Defender</option>
+                        <option value="left_wing" ${player.position === 'left_wing' ? 'selected' : ''}>Left Wing</option>
+                        <option value="right_wing" ${player.position === 'right_wing' ? 'selected' : ''}>Right Wing</option>
+                        <option value="midfielder" ${player.position === 'midfielder' ? 'selected' : ''}>Midfielder</option>
+                        <option value="forward" ${player.position === 'forward' ? 'selected' : ''}>Forward</option>
+                    </select>
+                    <input type="number" min="1" max="10" value="${player.skill_level || 5}" class="skill-input player-skill">
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+                `;
+                form.appendChild(div);
+            });
+
+            alert(`Loaded ${currentPlayers.length} saved players!`);
+        })
+        .catch(error => {
+            console.error('Error loading saved players:', error);
+            alert('Error loading saved players!');
+        });
+}
+
+function getPlayersFromForm() {
+    const players = [];
+    const rows = document.querySelectorAll('#playerForm .form-row');
+    
+    rows.forEach((row, index) => {
+        // Skip header row (first row with strong elements)
+        if (index === 0 && row.querySelector('strong')) return;
+        
+        const nameInput = row.querySelector('.player-name');
+        const positionSelect = row.querySelector('.player-position');
+        const skillInput = row.querySelector('.player-skill');
+        
+        if (nameInput && nameInput.value.trim() !== '') {
+            players.push({
+                name: nameInput.value.trim(),
+                position: positionSelect ? positionSelect.value : 'midfielder',
+                skill_level: skillInput ? parseInt(skillInput.value) : 5
+            });
+        }
+    });
+    
+    return players;
+}
+
+function balanceTeams() {
+    const players = getPlayersFromForm();
+    
+    if (players.length < 2) {
+        alert('Please add at least 2 players!');
+        return;
+    }
+
+    fetch('/balance-teams', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ players: players })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        
+        displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+        currentTeams = { team_a: data.team_a, team_b: data.team_b };
+        
+        // Show score section
+        document.getElementById('scoreSection').style.display = 'grid';
+        document.getElementById('recordGameSection').style.display = 'flex';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error balancing teams!');
+    });
+}
+
+function randomizeTeams() {
+    const players = getPlayersFromForm();
+    
+    if (players.length < 2) {
+        alert('Please add at least 2 players!');
+        return;
+    }
+
+    fetch('/random-teams', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ players: players })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        
+        displayTeams(data.team_a, data.team_b, data.strength_a, data.strength_b);
+        currentTeams = { team_a: data.team_a, team_b: data.team_b };
+        
+        // Show score section
+        document.getElementById('scoreSection').style.display = 'grid';
+        document.getElementById('recordGameSection').style.display = 'flex';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating random teams!');
+    });
+}
+
+function displayTeams(teamA, teamB, strengthA, strengthB) {
+    const teamAElement = document.getElementById('teamA');
+    const teamBElement = document.getElementById('teamB');
+    const teamAStrengthElement = document.getElementById('teamAStrength');
+    const teamBStrengthElement = document.getElementById('teamBStrength');
+    const balanceIndicator = document.getElementById('balanceIndicator');
+    
+    // Update strengths
+    teamAStrengthElement.textContent = `Strength: ${strengthA.toFixed(1)}`;
+    teamBStrengthElement.textContent = `Strength: ${strengthB.toFixed(1)}`;
+    
+    // Update balance indicator
+    const balanceDiff = Math.abs(strengthA - strengthB);
+    if (balanceDiff <= 2) {
+        balanceIndicator.innerHTML = `<span class="balanced">✅ Teams are well balanced! (Difference: ${balanceDiff.toFixed(1)})</span>`;
+    } else {
+        balanceIndicator.innerHTML = `<span class="unbalanced">⚠️ Teams are somewhat unbalanced (Difference: ${balanceDiff.toFixed(1)})</span>`;
+    }
+    
+    // Clear previous teams
+    teamAElement.innerHTML = '';
+    teamBElement.innerHTML = '';
+    
+    // Display Team A
+    teamA.forEach(player => {
+        const li = document.createElement('li');
+        li.className = 'player-item';
+        li.innerHTML = `
+            <div class="player-info">
+                <div class="player-name">${player.name}</div>
+                <div class="player-details">
+                    <span class="position-badge position-${player.position}">${player.position.replace('_', ' ')}</span>
+                    • Skill: ${player.skill_level}/10
+                </div>
+            </div>
+        `;
+        teamAElement.appendChild(li);
+    });
+    
+    // Display Team B
+    teamB.forEach(player => {
+        const li = document.createElement('li');
+        li.className = 'player-item';
+        li.innerHTML = `
+            <div class="player-info">
+                <div class="player-name">${player.name}</div>
+                <div class="player-details">
+                    <span class="position-badge position-${player.position}">${player.position.replace('_', ' ')}</span>
+                    • Skill: ${player.skill_level}/10
+                </div>
+            </div>
+        `;
+        teamBElement.appendChild(li);
+    });
+}
+
+function saveCurrentPlayers() {
+    const players = getPlayersFromForm();
+    
+    if (players.length === 0) {
+        alert('Please add some players first!');
+        return;
+    }
+
+    fetch('/save-players', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ players: players })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Saved ${players.length} players!`);
+        } else {
+            alert('Error saving players: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving players!');
+    });
+}
+
+function recordGame() {
+    const teamAScore = parseInt(document.getElementById('teamAScore').value) || 0;
+    const teamBScore = parseInt(document.getElementById('teamBScore').value) || 0;
+    
+    if (!currentTeams.team_a || !currentTeams.team_b) {
+        alert('Please create teams first!');
+        return;
+    }
+
+    const gameData = {
+        id: 'game_' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        team_a: {
+            score: teamAScore,
+            players: currentTeams.team_a
+        },
+        team_b: {
+            score: teamBScore,
+            players: currentTeams.team_b
+        },
+        location: '',
+        notes: ''
+    };
+
+    fetch('/record-game', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(gameData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Game recorded successfully!');
+            // Reset scores
+            document.getElementById('teamAScore').value = 0;
+            document.getElementById('teamBScore').value = 0;
+        } else {
+            alert('Error recording game: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error recording game!');
+    });
+}
+
+// Add these additional functions that are referenced in your HTML
+function loadCurrentTeamsForGame() {
+    // Implementation for loading current teams in game tracker
+    alert('This would load the current teams into the game tracker');
+}
+
+function recordGameFromTracker() {
+    // Implementation for recording game from game tracker tab
+    alert('This would record a game from the game tracker tab');
+}
+
+function updatePlayerStats() {
+    // Implementation for updating player stats display
+    console.log('Updating player stats...');
+}
+
+function updateGameHistory() {
+    // Implementation for updating game history display
+    console.log('Updating game history...');
+}
+
+function exportData() {
+    // Implementation for exporting data
+    alert('Export functionality would go here');
+}
+
+function importData() {
+    // Implementation for importing data
+    alert('Import functionality would go here');
+}
+
+function clearAllData() {
+    if (confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
+        fetch('/clear-data', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ All data cleared!');
+                    loadGameData();
+                } else {
+                    alert('Error clearing data: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error clearing data!');
+            });
+    }
+}
+
+function copyExportData() {
+    // Implementation for copying export data
+    alert('Copy functionality would go here');
+}
+
+function processImport() {
+    // Implementation for processing imported data
+    alert('Process import functionality would go here');
+}
+
+function cancelImport() {
+    // Implementation for canceling import
+    alert('Cancel import functionality would go here');
+}
+
+function updateGameTeamsDisplay() {
+    // Update the game teams preview in the game tracker tab
+    const previewElement = document.getElementById('gameTeamsPreview');
+    if (currentTeams.team_a && currentTeams.team_b) {
+        previewElement.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4>Team A (${currentTeams.team_a.length} players)</h4>
+                    <ul>
+                        ${currentTeams.team_a.map(p => `<li>${p.name} - ${p.position}</li>`).join('')}
+                    </ul>
+                </div>
+                <div>
+                    <h4>Team B (${currentTeams.team_b.length} players)</h4>
+                    <ul>
+                        ${currentTeams.team_b.map(p => `<li>${p.name} - ${p.position}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+}
+    
         let playerCount = 0;
         let currentTeams = { team_a: [], team_b: [] };
         let gameData = { players: {}, games: [], current_players: [] };
