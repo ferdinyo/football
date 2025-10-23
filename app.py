@@ -54,7 +54,7 @@ def get_google_credentials():
 
 
 @app.route("/test-google-sheets")
-def test_google_sheets():
+def test_google_sheets_route():
     """Quick connectivity test for Google Sheets on Render."""
     try:
         creds = get_google_credentials()
