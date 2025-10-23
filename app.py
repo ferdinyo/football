@@ -2152,7 +2152,9 @@ function positionTeamPlayers(team, container, teamSide) {
 }
 
 function getPlayerInitials(name) {
-    return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+    // Get first name only and show up to 4 characters
+    const firstName = name.trim().split(' ')[0];
+    return firstName.substring(0, 5).toUpperCase();
 }
     </script>
 </body>
