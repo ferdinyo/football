@@ -1211,13 +1211,11 @@ def home():
                         </div>
                     </div>
                     
-                                        <div class="teams-section">
+                    <div class="teams-section">
                         <h2>📊 Teams</h2>
                         <div id="balanceIndicator" class="balance-indicator">
                             Click "Balance Teams" to create balanced teams
                         </div>
-                        
-                        <!-- Teams Display with Player Lists -->
                         <div class="teams-display">
                             <div class="team">
                                 <div class="team-header">
@@ -1235,35 +1233,53 @@ def home():
                             </div>
                         </div>
                         
-                        <!-- Football Fields - INSIDE the teams section -->
+                         </div>
+                        <!-- Football Field Visualization -->
                         <div class="football-field-section" id="footballFieldSection" style="display: none;">
-                            <h3>🏟️ Field Formation</h3>
+                            <h2>🏟️ Team Formation</h2>
                             <div class="field-container">
+                                <!-- Team A Field -->
                                 <div class="team-field team-a-field">
-                                    <h4>🔵 Team A</h4>
+                                    <h3>🔵 Team A Formation</h3>
                                     <div class="football-field">
                                         <div class="field-lines"></div>
                                         <div class="goal goal-left"></div>
                                         <div class="goal goal-right"></div>
                                         <div class="center-circle"></div>
-                                        <div class="players-container" id="teamAPositions"></div>
+                                        <div class="players-container" id="teamAPositions">
+                                            <!-- Players will be positioned here dynamically -->
+                                        </div>
                                     </div>
                                 </div>
                                 
+                                <!-- Team B Field -->
                                 <div class="team-field team-b-field">
-                                    <h4>🔴 Team B</h4>
+                                    <h3>🔴 Team B Formation</h3>
                                     <div class="football-field">
                                         <div class="field-lines"></div>
                                         <div class="goal goal-left"></div>
                                         <div class="goal goal-right"></div>
                                         <div class="center-circle"></div>
-                                        <div class="players-container" id="teamBPositions"></div>
+                                        <div class="players-container" id="teamBPositions">
+                                            <!-- Players will be positioned here dynamically -->
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Score section remains here -->
+                        <div class="score-input" id="scoreSection" style="display: none;">
+                            <div class="score-team">
+                                <h4>Team A Score</h4>
+                                <input type="number" id="teamAScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="score-team">
+                                <h4>Team B Score</h4>
+                                <input type="number" id="teamBScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                        </div>
+                                                
                         <div class="score-input" id="scoreSection" style="display: none;">
                             <div class="score-team">
                                 <h4>Team A Score</h4>
@@ -1280,6 +1296,8 @@ def home():
                             <button onclick="recordGame()">📝 Record Game Result</button>
                         </div>
                     </div>
+                </div>
+            </div>
             
             <!-- Game Tracker Tab -->
             <div id="game-tracker" class="tab-content">
@@ -1421,7 +1439,7 @@ function addPlayerField() {
 
 function addSampleTeam() {
     const samplePlayers = [
-        { name: 'Yunus', position: 'goalkeeper', skill: 8 },
+{ name: 'Yunus', position: 'goalkeeper', skill: 8 },
         { name: 'Erhan', position: 'goalkeeper', skill: 9 },
         { name: 'Ramo', position: 'defender', skill: 5 },
         { name: 'Ahmet', position: 'defender', skill: 5 },
