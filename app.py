@@ -1314,8 +1314,8 @@ def home():
                             <button onclick="recordGame()">📝 Record Game Result</button>
                         </div>
                     </div>
-                </div>
-            </div>
+            <!--   </div>
+           </div> -->
             
             <!-- Game Tracker Tab -->
             <div id="game-tracker" class="tab-content">
