@@ -1211,31 +1211,49 @@ def home():
                         </div>
                     </div>
                     
-                    <div class="teams-section">
+                                        <div class="teams-section">
                         <h2>📊 Teams</h2>
                         <div id="balanceIndicator" class="balance-indicator">
                             Click "Balance Teams" to create balanced teams
                         </div>
+                        
+                        <!-- Teams lists (Team A and Team B) -->
                         <div class="teams-display">
                             <div class="team">
-                                <div class="team-header">
-                                    <h3>🔵 Team A</h3>
-                                    <span id="teamAStrength" class="team-strength">Strength: 0</span>
-                                </div>
-                                <ul id="teamA" class="player-list"></ul>
+                                <!-- Team A list -->
                             </div>
                             <div class="team">
-                                <div class="team-header">
-                                    <h3>🔴 Team B</h3>
-                                    <span id="teamBStrength" class="team-strength">Strength: 0</span>
-                                </div>
-                                <ul id="teamB" class="player-list"></ul>
+                                <!-- Team B list -->
                             </div>
                         </div>
                         
-                         </div>
-                        <!-- Football Field Visualization -->
+                        <!-- Football Field Visualization - MOVED INSIDE teams-section -->
                         <div class="football-field-section" id="footballFieldSection" style="display: none;">
+                            <h3>🏟️ Field Formation</h3>
+                            <div class="field-container">
+                                <div class="team-field team-a-field">
+                                    <h4>🔵 Team A</h4>
+                                    <div class="football-field">
+                                        <!-- Team A field content -->
+                                    </div>
+                                </div>
+                                <div class="team-field team-b-field">
+                                    <h4>🔴 Team B</h4>
+                                    <div class="football-field">
+                                        <!-- Team B field content -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="score-input" id="scoreSection" style="display: none;">
+                            <!-- Score inputs -->
+                        </div>
+                        
+                        <div class="buttons" id="recordGameSection" style="display: none;">
+                            <button onclick="recordGame()">📝 Record Game Result</button>
+                        </div>
+                    </div>
                             <h2>🏟️ Team Formation</h2>
                             <div class="field-container">
                                 <!-- Team A Field -->
