@@ -1439,7 +1439,7 @@ function addPlayerField() {
 
 function addSampleTeam() {
     const samplePlayers = [
-{ name: 'Yunus', position: 'goalkeeper', skill: 8 },
+        { name: 'Yunus', position: 'goalkeeper', skill: 8 },
         { name: 'Erhan', position: 'goalkeeper', skill: 9 },
         { name: 'Ramo', position: 'defender', skill: 5 },
         { name: 'Ahmet', position: 'defender', skill: 5 },
@@ -1450,7 +1450,7 @@ function addSampleTeam() {
         { name: 'Veysel', position: 'defender', skill: 6 },
         { name: 'Selim', position: 'defender', skill: 7 },
         { name: 'Adem', position: 'defender', skill: 6 },
-        { name: 'Hakan K', position: 'left_wing', skill: 7 }
+        { name: 'Hakan K', position: 'left_wing', skill: 7 },
         { name: 'Sinan', position: 'left_wing', skill: 6 },
         { name: 'Erdal', position: 'right_wing', skill: 8 },
         { name: 'Cetin', position: 'left_wing', skill: 7 },
