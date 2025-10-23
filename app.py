@@ -905,6 +905,211 @@ def home():
             border-radius: 10px;
             margin: 20px 0;
         }
+        /* Football Field Styles */
+.football-field-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 25px;
+    border-radius: 15px;
+    margin-top: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.field-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.team-field h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #FFD700;
+}
+
+.football-field {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
+    border: 3px solid #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.field-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.field-lines:before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-50%);
+}
+
+.field-lines:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80px;
+    height: 80px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.goal {
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-50%);
+}
+
+.goal-left {
+    left: 0;
+}
+
+.goal-right {
+    right: 0;
+}
+
+.center-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.players-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Player Position Markers */
+.player-marker {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.player-marker:hover {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+.team-a-field .player-marker {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+}
+
+.team-b-field .player-marker {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.player-marker.goalkeeper {
+    border-color: #FF9800;
+}
+
+.player-marker.defender {
+    border-color: #4CAF50;
+}
+
+.player-marker.midfielder {
+    border-color: #9C27B0;
+}
+
+.player-marker.forward {
+    border-color: #FF5722;
+}
+
+.player-marker.left_wing,
+.player-marker.right_wing {
+    border-color: #FFC107;
+}
+
+.player-info-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    transform: translateY(-100%);
+    margin-top: -10px;
+}
+
+/* Position-specific placements */
+.position-goalkeeper { left: 5%; top: 50%; transform: translateY(-50%); }
+.position-defender { left: 20%; }
+.position-left_wing { left: 35%; top: 20%; }
+.position-right_wing { left: 35%; top: 80%; transform: translateY(-50%); }
+.position-midfielder { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.position-forward { left: 75%; top: 50%; transform: translateY(-50%); }
+
+/* Multiple players in same position */
+.position-defender:nth-child(2) { top: 30%; }
+.position-defender:nth-child(3) { top: 70%; transform: translateY(-50%); }
+.position-defender:nth-child(4) { top: 50%; transform: translateY(-50%); }
+
+.position-midfielder:nth-child(2) { top: 30%; transform: translate(-50%, -50%); }
+.position-midfielder:nth-child(3) { top: 70%; transform: translate(-50%, -50%); }
+
+.position-forward:nth-child(2) { top: 30%; transform: translateY(-50%); }
+.position-forward:nth-child(3) { top: 70%; transform: translateY(-50%); }
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .field-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .football-field {
+        height: 300px;
+    }
+    
+    .player-marker {
+        width: 40px;
+        height: 40px;
+        font-size: 8px;
+    }
+}
     </style>
 </head>
 <body>
@@ -989,7 +1194,54 @@ def home():
                                 <ul id="teamB" class="player-list"></ul>
                             </div>
                         </div>
+                        #
+                         </div>
                         
+                        <div class="score-input" id="scoreSection" style="display: none;">
+                            <div class="score-team">
+                                <h4>Team A Score</h4>
+                                <input type="number" id="teamAScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="score-team">
+                                <h4>Team B Score</h4>
+                                <input type="number" id="teamBScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                        </div>
+                                                <!-- Football Field Visualization -->
+                        <div class="football-field-section" id="footballFieldSection" style="display: none;">
+                            <h2>🏟️ Team Formation</h2>
+                            <div class="field-container">
+                                <!-- Team A Field -->
+                                <div class="team-field team-a-field">
+                                    <h3>🔵 Team A Formation</h3>
+                                    <div class="football-field">
+                                        <div class="field-lines"></div>
+                                        <div class="goal goal-left"></div>
+                                        <div class="goal goal-right"></div>
+                                        <div class="center-circle"></div>
+                                        <div class="players-container" id="teamAPositions">
+                                            <!-- Players will be positioned here dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Team B Field -->
+                                <div class="team-field team-b-field">
+                                    <h3>🔴 Team B Formation</h3>
+                                    <div class="football-field">
+                                        <div class="field-lines"></div>
+                                        <div class="goal goal-left"></div>
+                                        <div class="goal goal-right"></div>
+                                        <div class="center-circle"></div>
+                                        <div class="players-container" id="teamBPositions">
+                                            <!-- Players will be positioned here dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        #
                         <div class="score-input" id="scoreSection" style="display: none;">
                             <div class="score-team">
                                 <h4>Team A Score</h4>
@@ -1728,7 +1980,180 @@ function updateGameTeamsDisplay() {
         
         // ... ALL YOUR EXISTING JAVASCRIPT FUNCTIONS REMAIN EXACTLY THE SAME ...
         // (addPlayerField, balanceTeams, randomizeTeams, saveCurrentPlayers, recordGame, etc.)
+        function displayTeams(teamA, teamB, strengthA, strengthB) {
+    const teamAElement = document.getElementById('teamA');
+    const teamBElement = document.getElementById('teamB');
+    const teamAStrengthElement = document.getElementById('teamAStrength');
+    const teamBStrengthElement = document.getElementById('teamBStrength');
+    const balanceIndicator = document.getElementById('balanceIndicator');
+    const footballFieldSection = document.getElementById('footballFieldSection');
+    
+    // Update strengths
+    teamAStrengthElement.textContent = `Strength: ${strengthA.toFixed(1)}`;
+    teamBStrengthElement.textContent = `Strength: ${strengthB.toFixed(1)}`;
+    
+    // Update balance indicator
+    const balanceDiff = Math.abs(strengthA - strengthB);
+    if (balanceDiff <= 2) {
+        balanceIndicator.innerHTML = `<span class="balanced">✅ Teams are well balanced! (Difference: ${balanceDiff.toFixed(1)})</span>`;
+    } else {
+        balanceIndicator.innerHTML = `<span class="unbalanced">⚠️ Teams are somewhat unbalanced (Difference: ${balanceDiff.toFixed(1)})</span>`;
+    }
+    
+    // Clear previous teams
+    teamAElement.innerHTML = '';
+    teamBElement.innerHTML = '';
+    
+    // Display Team A as list
+    teamA.forEach(player => {
+        const li = document.createElement('li');
+        li.className = 'player-item';
+        li.innerHTML = `
+            <div class="player-info">
+                <div class="player-name">${player.name}</div>
+                <div class="player-details">
+                    <span class="position-badge position-${player.position}">${player.position.replace('_', ' ')}</span>
+                    • Skill: ${player.skill_level}/10
+                </div>
+            </div>
+        `;
+        teamAElement.appendChild(li);
+    });
+    
+    // Display Team B as list
+    teamB.forEach(player => {
+        const li = document.createElement('li');
+        li.className = 'player-item';
+        li.innerHTML = `
+            <div class="player-info">
+                <div class="player-name">${player.name}</div>
+                <div class="player-details">
+                    <span class="position-badge position-${player.position}">${player.position.replace('_', ' ')}</span>
+                    • Skill: ${player.skill_level}/10
+                </div>
+            </div>
+        `;
+        teamBElement.appendChild(li);
+    });
+    
+    // Show and update football field
+    footballFieldSection.style.display = 'block';
+    positionPlayersOnField(teamA, teamB);
+    
+    // Show score section
+    document.getElementById('scoreSection').style.display = 'grid';
+    document.getElementById('recordGameSection').style.display = 'flex';
+}
+
+function positionPlayersOnField(teamA, teamB) {
+    const teamAPositions = document.getElementById('teamAPositions');
+    const teamBPositions = document.getElementById('teamBPositions');
+    
+    // Clear previous positions
+    teamAPositions.innerHTML = '';
+    teamBPositions.innerHTML = '';
+    
+    // Position Team A players
+    positionTeamPlayers(teamA, teamAPositions, 'a');
+    
+    // Position Team B players (flip positions)
+    positionTeamPlayers(teamB, teamBPositions, 'b');
+}
+
+function positionTeamPlayers(team, container, teamSide) {
+    const positionsCount = {
+        'goalkeeper': 0,
+        'defender': 0,
+        'left_wing': 0,
+        'right_wing': 0,
+        'midfielder': 0,
+        'forward': 0
+    };
+    
+    // First pass: count players per position
+    team.forEach(player => {
+        positionsCount[player.position] = (positionsCount[player.position] || 0) + 1;
+    });
+    
+    // Second pass: position players
+    team.forEach(player => {
+        const marker = document.createElement('div');
+        marker.className = `player-marker ${player.position} position-${player.position}`;
         
+        // Add specific class for multiple players in same position
+        const positionIndex = positionsCount[player.position]--;
+        if (positionIndex > 1) {
+            marker.classList.add(`position-${player.position}-${positionIndex}`);
+        }
+        
+        // For Team B, we need to flip the field horizontally
+        if (teamSide === 'b') {
+            marker.style.left = ''; // Reset left position
+            marker.style.right = marker.style.left; // Flip horizontally
+            
+            // Adjust specific positions for Team B
+            if (player.position === 'goalkeeper') {
+                marker.style.right = '5%';
+                marker.style.left = 'auto';
+            } else if (player.position === 'defender') {
+                marker.style.right = '20%';
+                marker.style.left = 'auto';
+            } else if (player.position === 'left_wing') {
+                marker.classList.remove('position-left_wing');
+                marker.classList.add('position-right_wing');
+                marker.style.right = '35%';
+                marker.style.left = 'auto';
+            } else if (player.position === 'right_wing') {
+                marker.classList.remove('position-right_wing');
+                marker.classList.add('position-left_wing');
+                marker.style.right = '35%';
+                marker.style.left = 'auto';
+            } else if (player.position === 'midfielder') {
+                marker.style.right = '50%';
+                marker.style.left = 'auto';
+                marker.style.transform = 'translate(50%, -50%)';
+            } else if (player.position === 'forward') {
+                marker.style.right = '75%';
+                marker.style.left = 'auto';
+            }
+        }
+        
+        marker.innerHTML = `
+            <div class="player-initial">${getPlayerInitials(player.name)}</div>
+        `;
+        
+        // Add hover tooltip
+        marker.addEventListener('mouseenter', function(e) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'player-info-tooltip';
+            tooltip.textContent = `${player.name} (${player.position.replace('_', ' ')}) - Lvl ${player.skill_level}`;
+            tooltip.style.left = e.pageX - container.getBoundingClientRect().left + 'px';
+            tooltip.style.top = e.pageY - container.getBoundingClientRect().top + 'px';
+            marker.appendChild(tooltip);
+        });
+        
+        marker.addEventListener('mouseleave', function() {
+            const tooltip = marker.querySelector('.player-info-tooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        });
+        
+        marker.addEventListener('mousemove', function(e) {
+            const tooltip = marker.querySelector('.player-info-tooltip');
+            if (tooltip) {
+                tooltip.style.left = e.pageX - container.getBoundingClientRect().left + 'px';
+                tooltip.style.top = e.pageY - container.getBoundingClientRect().top - 40 + 'px';
+            }
+        });
+        
+        container.appendChild(marker);
+    });
+}
+
+function getPlayerInitials(name) {
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+}
     </script>
 </body>
 </html>
