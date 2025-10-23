@@ -570,9 +570,17 @@ def home():
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
-        
-        .stats-section {
-            grid-column: 1 / -1;
+        /* Adjust the teams section to have better spacing with the field */
+        .teams-section {
+            margin-bottom: 0; /* Remove bottom margin since field comes right after */
+        }
+    
+        .football-field-section {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+                .stats-section {
+                    grid-column: 1 / -1;
         }
         
         h2 {
@@ -1224,21 +1232,9 @@ def home():
                                 <ul id="teamB" class="player-list"></ul>
                             </div>
                         </div>
-                        #
-                         </div>
                         
-                        <div class="score-input" id="scoreSection" style="display: none;">
-                            <div class="score-team">
-                                <h4>Team A Score</h4>
-                                <input type="number" id="teamAScore" min="0" value="0" style="width: 80px; text-align: center;">
-                            </div>
-                            <div class="vs">VS</div>
-                            <div class="score-team">
-                                <h4>Team B Score</h4>
-                                <input type="number" id="teamBScore" min="0" value="0" style="width: 80px; text-align: center;">
-                            </div>
-                        </div>
-                                                <!-- Football Field Visualization -->
+                         </div>
+                        <!-- Football Field Visualization -->
                         <div class="football-field-section" id="footballFieldSection" style="display: none;">
                             <h2>🏟️ Team Formation</h2>
                             <div class="field-container">
@@ -1271,7 +1267,19 @@ def home():
                                 </div>
                             </div>
                         </div>
-                        #
+                        
+                        <div class="score-input" id="scoreSection" style="display: none;">
+                            <div class="score-team">
+                                <h4>Team A Score</h4>
+                                <input type="number" id="teamAScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                            <div class="vs">VS</div>
+                            <div class="score-team">
+                                <h4>Team B Score</h4>
+                                <input type="number" id="teamBScore" min="0" value="0" style="width: 80px; text-align: center;">
+                            </div>
+                        </div>
+                                                
                         <div class="score-input" id="scoreSection" style="display: none;">
                             <div class="score-team">
                                 <h4>Team A Score</h4>
