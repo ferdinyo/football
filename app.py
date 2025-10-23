@@ -1007,6 +1007,7 @@ def home():
 }
 
 /* Player Position Markers */
+/* REPLACE the existing .player-marker styles with these: */
 .player-marker {
     position: absolute;
     width: 50px;
@@ -1016,48 +1017,77 @@ def home():
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 10px;
+    font-size: 9px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     border: 2px solid rgba(255, 255, 255, 0.8);
-}
-
-.player-marker:hover {
-    transform: scale(1.1);
-    z-index: 10;
-}
-
-.team-a-field .player-marker {
-    background: linear-gradient(135deg, #2196F3, #1976D2);
+    /* Ensure text is readable */
     color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    /* Prevent overlapping issues */
+    z-index: 1;
+}
+.player-skill-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #FFD700;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #FFD700;
+    font-weight: bold;
+}
+
+/* Team-specific borders */
+.team-a-field .player-marker {
+    border-style: solid;
+    border-width: 2px;
 }
 
 .team-b-field .player-marker {
-    background: linear-gradient(135deg, #f44336, #d32f2f);
-    color: white;
+    border-style: dashed;
+    border-width: 2px;
+}
+/* REPLACE the existing .player-marker:hover styles with these: */
+.player-marker:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
+/* REPLACE the existing position-specific colors with these: */
 .player-marker.goalkeeper {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
     border-color: #FF9800;
 }
 
 .player-marker.defender {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
     border-color: #4CAF50;
 }
 
 .player-marker.midfielder {
-    border-color: #9C27B0;
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border-color: #2196F3;
 }
 
 .player-marker.forward {
-    border-color: #FF5722;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-color: #f44336;
 }
 
 .player-marker.left_wing,
 .player-marker.right_wing {
-    border-color: #FFC107;
+    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+    border-color: #9C27B0;
 }
 
 .player-info-tooltip {
@@ -2075,60 +2105,47 @@ function positionTeamPlayers(team, container, teamSide) {
         positionsCount[player.position] = (positionsCount[player.position] || 0) + 1;
     });
     
-    // Second pass: position players
+    // Reset counters for positioning
+    const positionIndexes = {
+        'goalkeeper': 0,
+        'defender': 0,
+        'left_wing': 0,
+        'right_wing': 0,
+        'midfielder': 0,
+        'forward': 0
+    };
+    
+    // Second pass: position players with better distribution
     team.forEach(player => {
         const marker = document.createElement('div');
-        marker.className = `player-marker ${player.position} position-${player.position}`;
+        marker.className = `player-marker ${player.position}`;
         
-        // Add specific class for multiple players in same position
-        const positionIndex = positionsCount[player.position]--;
-        if (positionIndex > 1) {
-            marker.classList.add(`position-${player.position}-${positionIndex}`);
-        }
+        const positionIndex = positionIndexes[player.position]++;
+        const totalInPosition = positionsCount[player.position];
         
-        // For Team B, we need to flip the field horizontally
-        if (teamSide === 'b') {
-            marker.style.left = ''; // Reset left position
-            marker.style.right = marker.style.left; // Flip horizontally
-            
-            // Adjust specific positions for Team B
-            if (player.position === 'goalkeeper') {
-                marker.style.right = '5%';
-                marker.style.left = 'auto';
-            } else if (player.position === 'defender') {
-                marker.style.right = '20%';
-                marker.style.left = 'auto';
-            } else if (player.position === 'left_wing') {
-                marker.classList.remove('position-left_wing');
-                marker.classList.add('position-right_wing');
-                marker.style.right = '35%';
-                marker.style.left = 'auto';
-            } else if (player.position === 'right_wing') {
-                marker.classList.remove('position-right_wing');
-                marker.classList.add('position-left_wing');
-                marker.style.right = '35%';
-                marker.style.left = 'auto';
-            } else if (player.position === 'midfielder') {
-                marker.style.right = '50%';
-                marker.style.left = 'auto';
-                marker.style.transform = 'translate(50%, -50%)';
-            } else if (player.position === 'forward') {
-                marker.style.right = '75%';
-                marker.style.left = 'auto';
-            }
-        }
+        // Calculate position based on role and index
+        const position = calculatePlayerPosition(player.position, positionIndex, totalInPosition, teamSide);
+        
+        marker.style.left = position.x + '%';
+        marker.style.top = position.y + '%';
+        marker.style.transform = 'translate(-50%, -50%)';
+        
+        // Ensure z-index so all players are visible
+        marker.style.zIndex = positionIndex + 1;
         
         marker.innerHTML = `
             <div class="player-initial">${getPlayerInitials(player.name)}</div>
+            <div class="player-skill-badge">${player.skill_level}</div>
         `;
         
-        // Add hover tooltip
+        // Add hover tooltip (optional now, but keep for extra info)
         marker.addEventListener('mouseenter', function(e) {
             const tooltip = document.createElement('div');
             tooltip.className = 'player-info-tooltip';
-            tooltip.textContent = `${player.name} (${player.position.replace('_', ' ')}) - Lvl ${player.skill_level}`;
-            tooltip.style.left = e.pageX - container.getBoundingClientRect().left + 'px';
-            tooltip.style.top = e.pageY - container.getBoundingClientRect().top + 'px';
+            tooltip.textContent = `${player.name} (${player.position.replace('_', ' ')})`;
+            tooltip.style.left = '50%';
+            tooltip.style.top = '-30px';
+            tooltip.style.transform = 'translateX(-50%)';
             marker.appendChild(tooltip);
         });
         
@@ -2139,16 +2156,62 @@ function positionTeamPlayers(team, container, teamSide) {
             }
         });
         
-        marker.addEventListener('mousemove', function(e) {
-            const tooltip = marker.querySelector('.player-info-tooltip');
-            if (tooltip) {
-                tooltip.style.left = e.pageX - container.getBoundingClientRect().left + 'px';
-                tooltip.style.top = e.pageY - container.getBoundingClientRect().top - 40 + 'px';
-            }
-        });
-        
         container.appendChild(marker);
     });
+}
+
+function calculatePlayerPosition(position, index, totalInPosition, teamSide) {
+    const basePositions = {
+        'goalkeeper': { x: 5, y: 50 },
+        'defender': { x: 20, y: 50 },
+        'left_wing': { x: 35, y: 20 },
+        'right_wing': { x: 35, y: 80 },
+        'midfielder': { x: 50, y: 50 },
+        'forward': { x: 75, y: 50 }
+    };
+    
+    let { x, y } = basePositions[position];
+    
+    // Adjust for multiple players in same position
+    if (totalInPosition > 1) {
+        switch (position) {
+            case 'defender':
+                // Spread defenders vertically
+                y = 20 + (index * (60 / (totalInPosition - 1)));
+                break;
+            case 'midfielder':
+                // Spread midfielders in a line
+                y = 20 + (index * (60 / (totalInPosition - 1)));
+                break;
+            case 'forward':
+                // Spread forwards vertically
+                y = 20 + (index * (60 / (totalInPosition - 1)));
+                break;
+            case 'goalkeeper':
+                // Keep goalkeeper centered but slight vertical variation if multiple (rare)
+                y = 40 + (index * 20);
+                break;
+            case 'left_wing':
+            case 'right_wing':
+                // Spread wings horizontally if multiple
+                x = 30 + (index * 10);
+                break;
+        }
+    }
+    
+    // Flip positions for Team B
+    if (teamSide === 'b') {
+        x = 100 - x;
+        
+        // Swap wings for Team B
+        if (position === 'left_wing') {
+            y = 80; // Becomes right wing
+        } else if (position === 'right_wing') {
+            y = 20; // Becomes left wing
+        }
+    }
+    
+    return { x, y };
 }
 
 function getPlayerInitials(name) {
