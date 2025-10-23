@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import os
 import gspread
 import logging
+import random  # ← ADD THIS LINE
+import json    # ← ADD THIS LINE if missing
 from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
@@ -101,31 +103,34 @@ sheets_client = init_google_sheets()
 class GoogleSheetsManager:
     def __init__(self):
         self.sheet = None
+        self.client = None
         self.setup_sheets()
     
     def setup_sheets(self):
-        """Initialize Google Sheets connection"""
+        """Initialize Google Sheets connection using environment variables"""
         try:
-            if os.path.exists(CREDENTIALS_FILE):
-                creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-                client = gspread.authorize(creds)
-                
-                # Try to open the existing sheet, or create a new one
-                try:
-                    self.sheet = client.open(SHEET_NAME)
-                    logger.info(f"✓ Connected to existing Google Sheet: {SHEET_NAME}")
-                except gspread.SpreadsheetNotFound:
-                    # Create new sheet if it doesn't exist
-                    self.sheet = client.create(SHEET_NAME)
-                    # Share with yourself (optional)
-                    # self.sheet.share('your-email@gmail.com', perm_type='user', role='writer')
-                    logger.info(f"✓ Created new Google Sheet: {SHEET_NAME}")
-                
-                # Initialize worksheets if they don't exist
+            creds = get_google_credentials()
+            if not creds:
+                logger.warning("Google Sheets credentials not available, using local storage fallback")
+                return
+            
+            self.client = gspread.authorize(creds)
+            sheet_id = os.getenv("GOOGLE_SHEETS_ID")
+            
+            if not sheet_id:
+                logger.warning("GOOGLE_SHEETS_ID not set, using local storage fallback")
+                return
+            
+            # Try to open the existing sheet
+            try:
+                self.sheet = self.client.open_by_key(sheet_id)
+                logger.info(f"✅ Connected to Google Sheet: {sheet_id}")
                 self.initialize_worksheets()
-                
-            else:
-                logger.warning("Google Sheets credentials not found, using local storage fallback")
+            except gspread.SpreadsheetNotFound:
+                logger.error(f"Google Sheet not found with ID: {sheet_id}")
+                self.sheet = None
+            except Exception as e:
+                logger.error(f"Error opening Google Sheet: {e}")
                 self.sheet = None
                 
         except Exception as e:
@@ -134,6 +139,9 @@ class GoogleSheetsManager:
     
     def initialize_worksheets(self):
         """Initialize the required worksheets with headers"""
+        if not self.sheet:
+            return
+            
         worksheets = {
             'players': ['Player Name', 'Games Played', 'Wins', 'Total Goals', 'Average Rating', 'Last Played', 'Position', 'Skill Level'],
             'games': ['Game ID', 'Date', 'Team A Score', 'Team B Score', 'Location', 'Notes', 'Team A Players', 'Team B Players'],
@@ -142,24 +150,17 @@ class GoogleSheetsManager:
         
         for sheet_name, headers in worksheets.items():
             try:
+                # Try to get existing worksheet
                 self.sheet.worksheet(sheet_name)
                 logger.info(f"Worksheet '{sheet_name}' already exists")
             except gspread.WorksheetNotFound:
-                worksheet = self.sheet.add_worksheet(title=sheet_name, rows="100", cols=str(len(headers)))
-                worksheet.append_row(headers)
-                logger.info(f"Created worksheet '{sheet_name}' with headers")
-   
-    # Then use it to open the spreadsheet
-    def get_spreadsheet():
-        if sheets_client and SHEET_ID:
-            try:
-                spreadsheet = sheets_client.open_by_key(SHEET_ID)
-                return spreadsheet
-            except Exception as e:
-                logger.error(f"Error opening spreadsheet: {str(e)}")
-                return None
-        return None
-
+                try:
+                    # Create new worksheet if it doesn't exist
+                    worksheet = self.sheet.add_worksheet(title=sheet_name, rows="100", cols=str(len(headers)))
+                    worksheet.append_row(headers)
+                    logger.info(f"Created worksheet '{sheet_name}' with headers")
+                except Exception as e:
+                    logger.error(f"Error creating worksheet '{sheet_name}': {e}")
     
     def load_data(self):
         """Load data from Google Sheets"""
@@ -173,14 +174,14 @@ class GoogleSheetsManager:
             try:
                 players_ws = self.sheet.worksheet('players')
                 player_records = players_ws.get_all_records()
-                for record in player_records[1:]:  # Skip header row
-                    if record['Player Name']:
+                for record in player_records:
+                    if record.get('Player Name'):
                         data['players'][record['Player Name']] = {
                             'games_played': int(record.get('Games Played', 0)),
                             'wins': int(record.get('Wins', 0)),
                             'total_goals': int(record.get('Total Goals', 0)),
                             'average_rating': float(record.get('Average Rating', 0)),
-                            'last_played': record.get('Last Played'),
+                            'last_played': record.get('Last Played', ''),
                             'position': record.get('Position', ''),
                             'skill_level': int(record.get('Skill Level', 5))
                         }
@@ -191,11 +192,11 @@ class GoogleSheetsManager:
             try:
                 games_ws = self.sheet.worksheet('games')
                 game_records = games_ws.get_all_records()
-                for record in game_records[1:]:  # Skip header row
+                for record in game_records:
                     if record.get('Game ID'):
                         data['games'].append({
                             'id': record['Game ID'],
-                            'date': record['Date'],
+                            'date': record.get('Date', ''),
                             'team_a': {
                                 'score': int(record.get('Team A Score', 0)),
                                 'players': json.loads(record.get('Team A Players', '[]'))
@@ -214,8 +215,8 @@ class GoogleSheetsManager:
             try:
                 current_ws = self.sheet.worksheet('current_players')
                 current_records = current_ws.get_all_records()
-                for record in current_records[1:]:  # Skip header row
-                    if record['Name']:
+                for record in current_records:
+                    if record.get('Name'):
                         data['current_players'].append({
                             'name': record['Name'],
                             'position': record.get('Position', 'midfielder'),
@@ -239,64 +240,76 @@ class GoogleSheetsManager:
         
         try:
             # Save players
-            players_ws = self.sheet.worksheet('players')
-            players_ws.clear()
-            players_ws.append_row(['Player Name', 'Games Played', 'Wins', 'Total Goals', 'Average Rating', 'Last Played', 'Position', 'Skill Level'])
-            
-            player_rows = []
-            for name, stats in data['players'].items():
-                player_rows.append([
-                    name,
-                    stats['games_played'],
-                    stats['wins'],
-                    stats['total_goals'],
-                    stats['average_rating'],
-                    stats['last_played'] or '',
-                    stats.get('position', ''),
-                    stats.get('skill_level', 5)
-                ])
-            
-            if player_rows:
-                players_ws.append_rows(player_rows)
+            try:
+                players_ws = self.sheet.worksheet('players')
+                players_ws.clear()
+                players_ws.append_row(['Player Name', 'Games Played', 'Wins', 'Total Goals', 'Average Rating', 'Last Played', 'Position', 'Skill Level'])
+                
+                player_rows = []
+                for name, stats in data['players'].items():
+                    player_rows.append([
+                        name,
+                        stats['games_played'],
+                        stats['wins'],
+                        stats['total_goals'],
+                        stats['average_rating'],
+                        stats['last_played'] or '',
+                        stats.get('position', ''),
+                        stats.get('skill_level', 5)
+                    ])
+                
+                if player_rows:
+                    players_ws.append_rows(player_rows)
+            except Exception as e:
+                logger.error(f"Error saving players: {e}")
+                return False
             
             # Save games
-            games_ws = self.sheet.worksheet('games')
-            games_ws.clear()
-            games_ws.append_row(['Game ID', 'Date', 'Team A Score', 'Team B Score', 'Location', 'Notes', 'Team A Players', 'Team B Players'])
-            
-            game_rows = []
-            for game in data['games']:
-                game_rows.append([
-                    game['id'],
-                    game['date'],
-                    game['team_a']['score'],
-                    game['team_b']['score'],
-                    game.get('location', ''),
-                    game.get('notes', ''),
-                    json.dumps(game['team_a']['players']),
-                    json.dumps(game['team_b']['players'])
-                ])
-            
-            if game_rows:
-                games_ws.append_rows(game_rows)
+            try:
+                games_ws = self.sheet.worksheet('games')
+                games_ws.clear()
+                games_ws.append_row(['Game ID', 'Date', 'Team A Score', 'Team B Score', 'Location', 'Notes', 'Team A Players', 'Team B Players'])
+                
+                game_rows = []
+                for game in data['games']:
+                    game_rows.append([
+                        game['id'],
+                        game['date'],
+                        game['team_a']['score'],
+                        game['team_b']['score'],
+                        game.get('location', ''),
+                        game.get('notes', ''),
+                        json.dumps(game['team_a']['players']),
+                        json.dumps(game['team_b']['players'])
+                    ])
+                
+                if game_rows:
+                    games_ws.append_rows(game_rows)
+            except Exception as e:
+                logger.error(f"Error saving games: {e}")
+                return False
             
             # Save current players
-            current_ws = self.sheet.worksheet('current_players')
-            current_ws.clear()
-            current_ws.append_row(['Name', 'Position', 'Skill Level'])
+            try:
+                current_ws = self.sheet.worksheet('current_players')
+                current_ws.clear()
+                current_ws.append_row(['Name', 'Position', 'Skill Level'])
+                
+                current_rows = []
+                for player in data['current_players']:
+                    current_rows.append([
+                        player['name'],
+                        player['position'],
+                        player['skill_level']
+                    ])
+                
+                if current_rows:
+                    current_ws.append_rows(current_rows)
+            except Exception as e:
+                logger.error(f"Error saving current players: {e}")
+                return False
             
-            current_rows = []
-            for player in data['current_players']:
-                current_rows.append([
-                    player['name'],
-                    player['position'],
-                    player['skill_level']
-                ])
-            
-            if current_rows:
-                current_ws.append_rows(current_rows)
-            
-            logger.info(f"Saved data to Google Sheets: {len(data['games'])} games, {len(data['players'])} players")
+            logger.info(f"✅ Saved data to Google Sheets: {len(data['games'])} games, {len(data['players'])} players")
             return True
             
         except Exception as e:
