@@ -55,14 +55,7 @@ def get_google_credentials():
         logger.error(f"❌ Error loading Google credentials: {str(e)}")
         return None
 
-        
-        # Option 3: Fallback to credentials file (for local development)
-        elif os.path.exists("credentials.json"):
-            return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
-        
-        else:
-            logger.error("No Google credentials found in environment variables or credentials.json")
-            return None
+
             
     except Exception as e:
         logger.error(f"Error loading Google credentials: {str(e)}")
