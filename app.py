@@ -1,78 +1,80 @@
 from flask import Flask, request, jsonify
-import random
-import math
-import json
-from datetime import datetime, date
 import os
 import gspread
-from google.oauth2.service_account import Credentials
 import logging
+from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
 
-# Set up logging
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Google Sheets configuration
-SHEET_NAME = "Football Team Manager"  # Name of your Google Sheet
-# Get the sheet ID from environment variable
-SHEET_ID = os.environ.get('GOOGLE_SHEETS_ID')
+SHEET_NAME = "Football Team Manager"
+SHEET_ID = os.getenv("GOOGLE_SHEETS_ID")
 
-# Define the scope
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
 
 def get_google_credentials():
-    """Get Google credentials directly from environment variables (Render-compatible)"""
+    """Safely build Google credentials from Render environment variables."""
     try:
-        client_email = os.getenv('GOOGLE_CLIENT_EMAIL')
-        private_key = os.getenv('GOOGLE_PRIVATE_KEY')
+        client_email = os.getenv("GOOGLE_CLIENT_EMAIL")
+        private_key = os.getenv("GOOGLE_PRIVATE_KEY")
 
         if not client_email or not private_key:
-            logger.error("❌ Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY in environment")
+            logger.warning("⚠️ Missing GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY")
             return None
 
-        # Fix the private key formatting
-        private_key = private_key.replace('\\n', '\n').replace('\r', '\n')
+        private_key = private_key.replace("\\n", "\n")
 
         credentials_dict = {
             "type": "service_account",
-            "project_id": os.getenv('GOOGLE_PROJECT_ID', ''),
-            "private_key_id": os.getenv('GOOGLE_PRIVATE_KEY_ID', ''),
+            "project_id": os.getenv("GOOGLE_PROJECT_ID", ""),
+            "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID", ""),
             "private_key": private_key,
             "client_email": client_email,
-            "client_id": os.getenv('GOOGLE_CLIENT_ID', ''),
+            "client_id": os.getenv("GOOGLE_CLIENT_ID", ""),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "universe_domain": "googleapis.com"
         }
 
         creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
-        logger.info("✅ Google credentials loaded successfully")
+        logger.info("✅ Google credentials successfully built")
         return creds
 
     except Exception as e:
-        logger.error(f"❌ Error loading Google credentials: {e}")
+        logger.error(f"❌ Failed to build Google credentials: {e}")
         return None
 
 
 @app.route("/test-google-sheets")
 def test_google_sheets():
+    """Quick connectivity test for Google Sheets on Render."""
     try:
         creds = get_google_credentials()
         if not creds:
-            return jsonify({"connected": False, "error": "No valid credentials"}), 500
+            return jsonify({"connected": False, "error": "Missing credentials"}), 500
 
-        import gspread
         gc = gspread.authorize(creds)
-        spreadsheet = gc.open_by_key(os.getenv('GOOGLE_SHEETS_ID'))
+        sheet_id = os.getenv("GOOGLE_SHEETS_ID")
+
+        if not sheet_id:
+            return jsonify({"connected": False, "error": "Missing GOOGLE_SHEETS_ID"}), 500
+
+        spreadsheet = gc.open_by_key(sheet_id)
         sheets = [ws.title for ws in spreadsheet.worksheets()]
+
+        logger.info(f"✅ Connected to Google Sheets: {sheets}")
         return jsonify({"connected": True, "worksheets": sheets})
+
     except Exception as e:
-        logger.error(f"Google Sheets connection test failed: {e}")
+        logger.error(f"❌ Google Sheets test failed: {e}")
         return jsonify({"connected": False, "error": str(e)}), 500
 
 
