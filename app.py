@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 # Google Sheets configuration
 SHEET_NAME = "Football Team Manager"  # Name of your Google Sheet
+# Get the sheet ID from environment variable
+SHEET_ID = os.environ.get('GOOGLE_SHEETS_ID')
 
 # Define the scope
 SCOPES = [
@@ -132,6 +134,18 @@ class GoogleSheetsManager:
                 worksheet = self.sheet.add_worksheet(title=sheet_name, rows="100", cols=str(len(headers)))
                 worksheet.append_row(headers)
                 logger.info(f"Created worksheet '{sheet_name}' with headers")
+   
+    # Then use it to open the spreadsheet
+    def get_spreadsheet():
+        if sheets_client and SHEET_ID:
+            try:
+                spreadsheet = sheets_client.open_by_key(SHEET_ID)
+                return spreadsheet
+            except Exception as e:
+                logger.error(f"Error opening spreadsheet: {str(e)}")
+                return None
+        return None
+
     
     def load_data(self):
         """Load data from Google Sheets"""
