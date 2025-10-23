@@ -46,6 +46,9 @@ def get_google_credentials():
             "token_uri": "https://oauth2.googleapis.com/token",
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
         }
+        logger.info("🔍 Checking Google credential pieces:")
+        logger.info(f"CLIENT_EMAIL: {os.environ.get('GOOGLE_CLIENT_EMAIL')}")
+        logger.info(f"PRIVATE_KEY (first 50 chars): {os.environ.get('GOOGLE_PRIVATE_KEY', '')[:50]}")
 
         creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
         logger.info("✅ Google credentials loaded successfully from environment variables")
