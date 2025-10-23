@@ -1475,13 +1475,99 @@ function recordGameFromTracker() {
 }
 
 function updatePlayerStats() {
-    // Implementation for updating player stats display
-    console.log('Updating player stats...');
+    const statsBody = document.getElementById('playerStatsBody');
+    if (!statsBody) return;
+
+    // Add timestamp to prevent caching
+    fetch('/load-data?' + new Date().getTime())
+        .then(response => response.json())
+        .then(data => {
+            const players = data.players || {};
+            statsBody.innerHTML = '';
+
+            if (Object.keys(players).length === 0) {
+                statsBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No player data available. Record a game first!</td></tr>';
+                return;
+            }
+
+            // Convert players object to array and sort by games played
+            const playersArray = Object.entries(players).map(([name, stats]) => ({
+                name,
+                ...stats
+            })).sort((a, b) => b.games_played - a.games_played);
+
+            playersArray.forEach(player => {
+                const winRate = player.games_played > 0 ? (player.wins / player.games_played * 100) : 0;
+                const winRateClass = winRate >= 60 ? 'high' : winRate >= 40 ? 'medium' : 'low';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${player.name}</strong></td>
+                    <td>${player.games_played}</td>
+                    <td>${player.wins}</td>
+                    <td>
+                        <span class="win-rate ${winRateClass}">
+                            ${winRate.toFixed(1)}%
+                        </span>
+                    </td>
+                    <td>${player.total_goals}</td>
+                    <td>${player.average_rating.toFixed(1)}</td>
+                    <td>${player.last_played || 'Never'}</td>
+                `;
+                statsBody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading player stats:', error);
+            statsBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Error loading data</td></tr>';
+        });
 }
 
 function updateGameHistory() {
-    // Implementation for updating game history display
-    console.log('Updating game history...');
+    const gameHistoryList = document.getElementById('gameHistoryList');
+    if (!gameHistoryList) return;
+
+    // Add timestamp to prevent caching
+    fetch('/load-data?' + new Date().getTime())
+        .then(response => response.json())
+        .then(data => {
+            const games = data.games || [];
+            gameHistoryList.innerHTML = '';
+
+            if (games.length === 0) {
+                gameHistoryList.innerHTML = '<p style="text-align: center; padding: 20px;">No games recorded yet. Record a game in the Team Splitter tab!</p>';
+                return;
+            }
+
+            // Sort games by date (newest first)
+            const sortedGames = [...games].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedGames.forEach(game => {
+                const gameElement = document.createElement('div');
+                gameElement.className = `game-item ${game.team_a.score > game.team_b.score ? '' : 'lost'}`;
+                
+                const teamAPlayers = game.team_a.players.map(p => p.name).join(', ');
+                const teamBPlayers = game.team_b.players.map(p => p.name).join(', ');
+                
+                gameElement.innerHTML = `
+                    <div class="game-header">
+                        <div class="game-date">${game.date}</div>
+                        <div class="game-score">${game.team_a.score} - ${game.team_b.score}</div>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Team A (${game.team_a.players.length}):</strong> ${teamAPlayers}<br>
+                        <strong>Team B (${game.team_b.players.length}):</strong> ${teamBPlayers}
+                    </div>
+                    ${game.location ? `<div><strong>Location:</strong> ${game.location}</div>` : ''}
+                    ${game.notes ? `<div><strong>Notes:</strong> ${game.notes}</div>` : ''}
+                `;
+                gameHistoryList.appendChild(gameElement);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading game history:', error);
+            gameHistoryList.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading game history</p>';
+        });
 }
 
 function exportData() {
@@ -1863,6 +1949,26 @@ def clear_data():
             return jsonify({'success': True})
         else:
             return jsonify({'error': 'Failed to clear data'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+        
+@app.route('/debug-sheets')
+def debug_sheets():
+    """Debug endpoint to see what's actually in Google Sheets"""
+    try:
+        data = load_data()
+        sheets_connected = sheets_manager.sheet is not None
+        
+        debug_info = {
+            'sheets_connected': sheets_connected,
+            'total_players': len(data.get('players', {})),
+            'total_games': len(data.get('games', [])),
+            'players': list(data.get('players', {}).keys()),
+            'games_count': len(data.get('games', [])),
+            'current_players_count': len(data.get('current_players', []))
+        }
+        
+        return jsonify(debug_info)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
