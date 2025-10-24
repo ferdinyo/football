@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-#from routes.players import players_bp
 import os
 import gspread
 import logging
@@ -8,7 +7,6 @@ import json    # ← ADD THIS LINE if missing
 from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
-#app.register_blueprint(players_bp)
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -1441,16 +1439,30 @@ function addPlayerField() {
 
 function addSampleTeam() {
     const samplePlayers = [
-        { name: 'John', position: 'goalkeeper', skill: 7 },
-        { name: 'Mike', position: 'defender', skill: 6 },
-        { name: 'Chris', position: 'defender', skill: 5 },
-        { name: 'David', position: 'midfielder', skill: 8 },
-        { name: 'Alex', position: 'midfielder', skill: 6 },
-        { name: 'James', position: 'forward', skill: 7 },
-        { name: 'Robert', position: 'forward', skill: 6 },
-        { name: 'Daniel', position: 'midfielder', skill: 5 },
-        { name: 'Paul', position: 'defender', skill: 6 },
-        { name: 'Mark', position: 'forward', skill: 7 }
+{ name: 'Yunus', position: 'goalkeeper', skill: 8 },
+        { name: 'Erhan', position: 'goalkeeper', skill: 9 },
+        { name: 'Ramo', position: 'defender', skill: 5 },
+        { name: 'Ahmet', position: 'defender', skill: 5 },
+        { name: 'Ahmet Erg', position: 'defender', skill: 7 },
+        { name: 'Mustafa Kara', position: 'defender', skill: 8 },
+        { name: 'Cihan', position: 'defender', skill: 6 },
+        { name: 'Samet', position: 'defender', skill: 9 },
+        { name: 'Veysel', position: 'defender', skill: 6 },
+        { name: 'Selim', position: 'defender', skill: 7 },
+        { name: 'Adem', position: 'defender', skill: 6 },
+        { name: 'Hakan K', position: 'left_wing', skill: 7 },
+        { name: 'Sinan', position: 'left_wing', skill: 6 },
+        { name: 'Erdal', position: 'right_wing', skill: 8 },
+        { name: 'Cetin', position: 'left_wing', skill: 7 },
+        { name: 'Ferdi', position: 'midfielder', skill: 8 },
+        { name: 'Umit', position: 'midfielder', skill: 7 },
+        { name: 'Ali D', position: 'midfielder', skill: 8 },
+        { name: 'Serkan', position: 'forward', skill: 8 },
+        { name: 'Aytekin', position: 'forward', skill: 7 },
+        { name: 'Yunus Ygul', position: 'forward', skill: 7 },
+        { name: 'Mutlu', position: 'midfielder', skill: 6 },
+        { name: 'Necip', position: 'right_wing', skill: 8 },
+        { name: 'Bayram', position: 'defender', skill: 7 }
     ];
 
     // Clear existing players first
@@ -2259,7 +2271,7 @@ def test_google_sheets():
         return jsonify({'connected': False, 'error': str(e)})
 
 # ALL YOUR EXISTING ROUTES REMAIN EXACTLY THE SAME
-#(load-data, save-players, record-game, balance-teams, random-teams, import-data, clear-data)
+# (load-data, save-players, record-game, balance-teams, random-teams, import-data, clear-data)
 
 @app.route('/load-data', methods=['GET'])
 def load_data_route():
