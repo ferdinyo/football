@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from routes.players import players_bp
+#from routes.players import players_bp
 import os
 import gspread
 import logging
@@ -8,7 +8,7 @@ import json    # ← ADD THIS LINE if missing
 from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
-app.register_blueprint(players_bp)
+#app.register_blueprint(players_bp)
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -2259,15 +2259,15 @@ def test_google_sheets():
         return jsonify({'connected': False, 'error': str(e)})
 
 # ALL YOUR EXISTING ROUTES REMAIN EXACTLY THE SAME
-# (load-data, save-players, record-game, balance-teams, random-teams, import-data, clear-data)
+#(load-data, save-players, record-game, balance-teams, random-teams, import-data, clear-data)
 
-#@app.route('/load-data', methods=['GET'])
-#def load_data_route():
-#    try:
-#        data = load_data()
-#        return jsonify(data)
-#    except Exception as e:
-#        return jsonify({'error': str(e)}), 500
+@app.route('/load-data', methods=['GET'])
+def load_data_route():
+    try:
+        data = load_data()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/save-players', methods=['POST'])
 def save_players():
