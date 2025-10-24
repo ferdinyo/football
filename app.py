@@ -2261,13 +2261,13 @@ def test_google_sheets():
 # ALL YOUR EXISTING ROUTES REMAIN EXACTLY THE SAME
 # (load-data, save-players, record-game, balance-teams, random-teams, import-data, clear-data)
 
-@app.route('/load-data', methods=['GET'])
-def load_data_route():
-    try:
-        data = load_data()
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+#@app.route('/load-data', methods=['GET'])
+#def load_data_route():
+#    try:
+#        data = load_data()
+#        return jsonify(data)
+#    except Exception as e:
+#        return jsonify({'error': str(e)}), 500
 
 @app.route('/save-players', methods=['POST'])
 def save_players():
