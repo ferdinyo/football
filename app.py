@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from routes.players import players_bp
 import os
 import gspread
 import logging
@@ -7,6 +8,7 @@ import json    # ← ADD THIS LINE if missing
 from google.oauth2.service_account import Credentials
 
 app = Flask(__name__)
+app.register_blueprint(players_bp)
 
 # Logging
 logging.basicConfig(level=logging.INFO)
