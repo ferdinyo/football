@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import os
 import gspread
 import logging
@@ -54,6 +54,9 @@ def get_google_credentials():
         logger.error(f"❌ Failed to build Google credentials: {e}")
         return None
 
+@app.route('/')
+def home():
+    return render_template('index.html')  # We'll handle template creation next if needed
 
 @app.route("/test-google-sheets")
 def test_google_sheets_route():
