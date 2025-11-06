@@ -1450,7 +1450,7 @@ function addSampleTeam() {
         { name: 'Veysel', position: 'defender', skill: 6 },
         { name: 'Selim', position: 'defender', skill: 7 },
         { name: 'Adem', position: 'defender', skill: 6 },
-        { name: 'Hakan K', position: 'left_wing', skill: 7 }
+        { name: 'Hakan K', position: 'left_wing', skill: 7 },
         { name: 'Sinan', position: 'left_wing', skill: 6 },
         { name: 'Erdal', position: 'right_wing', skill: 8 },
         { name: 'Cetin', position: 'left_wing', skill: 7 },
@@ -1459,7 +1459,7 @@ function addSampleTeam() {
         { name: 'Ali D', position: 'midfielder', skill: 8 },
         { name: 'Serkan', position: 'forward', skill: 8 },
         { name: 'Aytekin', position: 'forward', skill: 7 },
-        { name: 'Yunus Ygul', position: 'forward', skill: 7 }
+        { name: 'Yunus Ygul', position: 'forward', skill: 7 },
         { name: 'Mutlu', position: 'midfielder', skill: 6 },
         { name: 'Necip', position: 'right_wing', skill: 8 },
         { name: 'Bayram', position: 'defender', skill: 7 }
